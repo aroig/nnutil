@@ -12,3 +12,9 @@
 
 __version__      = '0.1'
 __description__  = 'Neural network utilities for tensorflow'
+
+from . import dataset
+from . import visual
+from . import train
+from . import model
+
