@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nlnnutil as nl
+import nnutil as nl
 
 
 class TestAvgPoolingModel(nl.model.NLConvNetModel):

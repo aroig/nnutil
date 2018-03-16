@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nlnnutil as nl
+import nnutil as nl
 
 class Dataset_Partition(unittest.TestCase):
     def setUp(self):

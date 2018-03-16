@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nlnnutil as nl
+import nnutil as nl
 
 class Dataset_TextFiles(unittest.TestCase):
     def test_dataset_text_files(self):
