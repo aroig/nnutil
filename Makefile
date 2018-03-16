@@ -19,7 +19,6 @@ VIRTUALENV   := virtualenv
 VPYTHON      := $(VENVDIR)/bin/$(notdir $(PYTHON))
 VPIP         := $(VENVDIR)/bin/pip
 VCOVERAGE    := $(VENVDIR)/bin/coverage
-VPACKAGES    := coverage flake8
 
 # Deployment paths
 PREFIX       := /usr
@@ -58,9 +57,9 @@ lint:
 
 
 
-$(VENVDIR)/bin/activate: Makefile
+$(VENVDIR)/bin/activate: Makefile requirements.txt
 	@$(VIRTUALENV) $(VENVDIR)
-	$(VPIP) install $(VPACKAGES)
+	$(VPIP) install -r requirements.txt
 
 $(VENVDIR)/bin/$(NAME): $(VENVDIR)/bin/activate setup.py $(SOURCE_FILES)
 	@$(VPIP) install --editable .
