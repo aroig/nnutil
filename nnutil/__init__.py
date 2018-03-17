@@ -17,4 +17,4 @@ from . import dataset
 from . import visual
 from . import train
 from . import model
-
+from . import util
