@@ -1,0 +1,40 @@
+<NET>
+NetID [dense]
+NumLayers [3]
+InputSize [1 1]
+OutputSize [2]
+</NET>
+
+<LAYER>
+Layer0 [input]
+Type [I]
+OutputSize [1 1]
+NumFMaps [2]
+NormMethod [none]
+</LAYER>
+
+<LAYER>
+Layer1 [dense0]
+Type [F]
+NumInputs [2]
+NumOutputs [2]
+ActFunction [relu]
+NumFMaps [1]
+Connections
+[2 0 1]
+</LAYER>
+
+<LAYER>
+Layer2 [output]
+Type [O]
+NumInputs [2]
+NumOutputs [2]
+ActFunction [identity]
+OutFunction [softmax]
+LossFunction [cross_entropy]
+NumFMaps [1]
+Labels [0;1]
+Connections
+[2 0 1]
+</LAYER>
+

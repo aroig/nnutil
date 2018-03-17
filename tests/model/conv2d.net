@@ -1,0 +1,41 @@
+<NET>
+NetID [conv2d]
+NumLayers [3]
+InputSize [3 3]
+OutputSize [1]
+</NET>
+
+<LAYER>
+Layer0 [input]
+Type [I]
+OutputSize [3 3]
+NumFMaps [1]
+NormMethod [none]
+</LAYER>
+
+<LAYER>
+Layer1 [conv0]
+Type [C]
+InputSize [3 3]
+OutputSize [1 1]
+KernelSize [3 3]
+ActFunction [relu]
+NumFMaps [1]
+Connections
+[1 0]
+</LAYER>
+
+<LAYER>
+Layer2 [output]
+Type [O]
+NumInputs [1]
+NumOutputs [1]
+ActFunction [identity]
+OutFunction [softmax]
+LossFunction [cross_entropy]
+NumFMaps [1]
+Labels [0]
+Connections
+[1 0]
+</LAYER>
+

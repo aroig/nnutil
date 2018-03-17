@@ -1,0 +1,42 @@
+<NET>
+NetID [max_pooling]
+NumLayers [3]
+InputSize [2 2]
+OutputSize [2]
+</NET>
+
+<LAYER>
+Layer0 [input]
+Type [I]
+OutputSize [2 2]
+NumFMaps [2]
+NormMethod [none]
+</LAYER>
+
+<LAYER>
+Layer1 [pool0]
+Type [MP]
+InputSize [2 2]
+OutputSize [1 1]
+KernelSize [2 2]
+ActFunction [identity]
+NumFMaps [2]
+Connections
+[1 0]
+[1 1]
+</LAYER>
+
+<LAYER>
+Layer2 [output]
+Type [O]
+NumInputs [2]
+NumOutputs [2]
+ActFunction [identity]
+OutFunction [softmax]
+LossFunction [cross_entropy]
+NumFMaps [1]
+Labels [0;1]
+Connections
+[2 0 1]
+</LAYER>
+

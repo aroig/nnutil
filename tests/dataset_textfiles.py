@@ -7,7 +7,7 @@ import nnutil as nl
 
 class Dataset_TextFiles(unittest.TestCase):
     def test_dataset_text_files(self):
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Tests/text")
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "./text")
         ds = nl.dataset.text_files(directory=path, glob='*.txt')
 
         with tf.Session() as sess:

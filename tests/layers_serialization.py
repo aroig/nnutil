@@ -101,7 +101,7 @@ class LayerSerialization(unittest.TestCase):
         # Do not hide long diffs
         self.maxDiff = None
 
-        self._path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Tests")
+        self._path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".")
         self._experiment_path = os.path.join(self._path, "tmp")
         self._export_path = os.path.join(self._path, "tmp/export")
         self._model_path = os.path.join(self._path, "model")
