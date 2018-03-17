@@ -58,7 +58,7 @@ lint:
 
 
 $(VENVDIR)/bin/activate: Makefile requirements.txt
-	@$(VIRTUALENV) $(VENVDIR)
+	@$(VIRTUALENV) --system-site-packages $(VENVDIR)
 	$(VPIP) install -r requirements.txt
 
 $(VENVDIR)/bin/$(NAME): $(VENVDIR)/bin/activate setup.py $(SOURCE_FILES)
