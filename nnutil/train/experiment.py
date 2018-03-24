@@ -105,7 +105,9 @@ class Experiment:
         if self._label_key is not None:
             ds = ds.map(lambda x: (x, x[self._label_key]))
 
-        return ds.make_one_shot_iterator().get_next()
+        it = ds.make_one_shot_iterator().get_next()
+
+        return it
 
     def profile(self, steps=200):
         train_dataset = self._train_dataset

@@ -1,4 +1,6 @@
 import os
+import json
+import socket
 import argparse
 
 import numpy as np
@@ -8,10 +10,29 @@ import nnutil as nn
 from .. import dataset
 
 class Trainer:
-    def __init__(self, model, dataset, build_path, argv=[]):
+    def __init__(self, model, dataset, build_path, cluster=None, argv=[]):
         tf.logging.set_verbosity(tf.logging.INFO)
 
+        if cluster is not None:
+            task_index = None
+            hostname = socket.gethostname()
+
+            for job, hosts in cluster.items():
+                for i, h in enumerate(hosts):
+                    if hostname == h.split('.')[0]:
+                        task_index = i
+                        job_name = job
+
+            os.environ['TF_CONFIG'] = json.dumps({
+                'cluster': cluster,
+                'task': {'type': job_name, 'index': task_index}
+            })
+
         self._build_path = os.path.abspath(build_path)
+
+        # Launch tensorboard on the chief
+        if cluster is None or job_name == 'chief':
+            self._tensorboard = nn.visual.Tensorboard(self._build_path)
 
         self._batch_size = 32
         self._eval_fraction = 0.1
@@ -46,9 +67,6 @@ class Trainer:
                                          eval_dataset=eval_dataset,
                                          train_dataset=train_dataset,
                                          label_key="label")
-
-        # Launch tensorboard
-        # tb = nn.visual.Tensorboard(self._build_path)
 
         # Train the model
         experiment.train_and_evaluate(steps=2000, resume=False)
