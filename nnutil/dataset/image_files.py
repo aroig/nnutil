@@ -51,6 +51,7 @@ class ImageFiles(tf.data.Dataset):
             # resize_image wants a shape, but the kernel does not use it. Let's fake it.
             image.set_shape([None, None, None])
             image = tf.image.resize_images(image, size=self._shape[0:2])
+            image.set_shape(self._shape)
 
         feature = {
             'path': img_path,

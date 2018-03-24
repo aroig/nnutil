@@ -1,6 +1,7 @@
 from .partition import *
 from .interleave import *
 from .labelled import *
+from .labelled_images import *
 from .image_files import *
 from .random import *
 from .ones import *
