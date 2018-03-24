@@ -34,8 +34,7 @@ class Experiment:
 
     @property
     def path(self):
-        name = self._model.name
-        return os.path.join(self._path, name)
+        return self._path
 
     @property
     def model(self):
