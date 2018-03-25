@@ -74,8 +74,7 @@ class PlotWindow:
         it = self._dataset.make_one_shot_iterator()
         feature = it.get_next()
 
-        # TODO: update this when changing feature type
-        self._feature = feature[0]
+        self._feature = feature
 
         self._nbatch = 1
         if 'label' in self._feature:
