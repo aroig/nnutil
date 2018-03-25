@@ -55,7 +55,8 @@ class ImageFiles(tf.data.Dataset):
 
         feature = {
             'path': img_path,
-            'image': image
+            'image': image,
+            'shape': tf.shape(image)
         }
 
         return feature
