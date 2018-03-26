@@ -9,7 +9,7 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 from ..model import NLModelWriter
 
 class Experiment:
-    def __init__(self, path, model, eval_dataset=None, train_dataset=None, label_key="label", seed=None):
+    def __init__(self, path, model, eval_dataset=None, train_dataset=None, resume=False, label_key="label", seed=None):
         self._model = model
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
@@ -26,27 +26,10 @@ class Experiment:
         # Path to the model directory
         self._path = os.path.abspath(path)
 
-        # Cache the run timestamp, so it does not change in a single run
-        self._run_timestamp = None
-
-        if not os.path.exists(self._path):
-            os.makedirs(self._path)
-
-    @property
-    def path(self):
-        return self._path
-
-    @property
-    def model(self):
-        return self._model
-
-    def get_run_path(self, mode, resume=False):
-        path = self.path
-
-        if resume and self._run_timestamp is None:
+        if resume:
             all_runs = []
 
-            train_dir = os.path.join(path, 'train')
+            train_dir = os.path.join(path, self._name)
             if os.path.exists(train_dir):
                 all_runs = list(sorted(os.listdir(train_dir)))
 
@@ -56,13 +39,16 @@ class Experiment:
         if self._run_timestamp is None:
             self._run_timestamp = datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
 
-        run_path = os.path.join(path, mode, self._run_timestamp)
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
-        if not os.path.exists(run_path):
-            os.makedirs(run_path)
+    @property
+    def path(self):
+        return os.path.join(self._path, self._name, self._run_timestamp)
 
-        return run_path
-
+    @property
+    def model(self):
+        return self._model
 
     def hooks(self, mode):
         hooks = []
@@ -79,25 +65,23 @@ class Experiment:
                 tensors=log_tensors))
 
         if mode == 'prof':
-            path = self.get_run_path('prof', resume=False)
-            hooks.append(TensorboardProfilerHook(save_secs=self._log_secs, output_dir=path))
+            hooks.append(TensorboardProfilerHook(save_secs=self._log_secs, output_dir=self.path))
 
         return hooks
 
 
-    def estimator(self, mode, resume=False):
-        path = self.get_run_path(mode, resume=resume)
+    def estimator(self, mode):
         model_fn = self._model.model_fn
 
         config = tf.estimator.RunConfig(
-            model_dir=path,
+            model_dir=self.path,
             tf_random_seed=self._seed,
             save_summary_steps=self._summary_steps,
             save_checkpoints_secs=self._checkpoint_secs,
             keep_checkpoint_max=10,
             log_step_count_steps=self._summary_steps)
 
-        estimator = tf.estimator.Estimator(model_fn=model_fn, model_dir=path, config=config)
+        estimator = tf.estimator.Estimator(model_fn=model_fn, model_dir=self.path, config=config)
 
         return estimator
 
@@ -105,9 +89,7 @@ class Experiment:
         if self._label_key is not None:
             ds = ds.map(lambda x: (x, x[self._label_key]))
 
-        it = ds.make_one_shot_iterator().get_next()
-
-        return it
+        return ds.make_one_shot_iterator().get_next()
 
     def profile(self, steps=200):
         train_dataset = self._train_dataset
@@ -120,7 +102,7 @@ class Experiment:
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
 
-    def train(self, steps=2000, resume=False):
+    def train(self, steps=2000):
         train_dataset = self._train_dataset
         def input_fn():
            return self.iterator(train_dataset)
@@ -138,12 +120,12 @@ class Experiment:
 
         hooks = self.hooks('eval')
 
-        estimator = self.estimator('eval', resume=False)
+        estimator = self.estimator('eval')
         results = estimator.evaluate(input_fn=input_fn, hooks=hooks)
         return results
 
 
-    def train_and_evaluate(self, steps=2000, resume=False):
+    def train_and_evaluate(self, steps=2000):
 
         train_dataset = self._train_dataset
         def train_input_fn():
@@ -156,7 +138,7 @@ class Experiment:
         train_hooks = self.hooks('train')
         evaluation_hooks = []
 
-        estimator = self.estimator('train', resume=resume)
+        estimator = self.estimator('train')
         tf.estimator.train_and_evaluate(
             estimator,
             tf.estimator.TrainSpec(
@@ -170,7 +152,10 @@ class Experiment:
                 steps=5))
 
 
-    def export(self, export_path, batch_size=1, as_text=False):
+    def export(self, export_path=None, batch_size=1, as_text=False):
+        if export_path is None:
+            export_path = os.path.join(self.path, "export")
+
         model = self._model
         def input_receiver_fn():
             features = model.features_placeholder()
@@ -181,7 +166,7 @@ class Experiment:
             os.makedirs(export_path)
 
         # TODO: need a 'predict' tag?
-        estimator = self.estimator('train', resume=True)
+        estimator = self.estimator('train')
         savemodel_path = estimator.export_savedmodel(export_path, input_receiver_fn, as_text=True)
         savemodel_path = savemodel_path.decode()
 
@@ -204,9 +189,12 @@ class Experiment:
             tf.train.write_graph(frozen_graph_def, export_path, model_pb, as_text=as_text)
 
 
-    def neurallabs_export(self, export_path):
+    def neurallabs_export(self, export_path=None):
+        if export_path is None:
+            export_path = os.path.join(self.path, "export")
+
         model = self._model
-        estimator = self.estimator('train', resume=True)
+        estimator = self.estimator('train')
 
         # TODO: Find a better way to extract the weights. We need to setup an estimator within a session of our own.
         # This is an adaptation of tf.estimator.Estimator.predict
@@ -242,7 +230,10 @@ class Experiment:
                     writer.write(net_fd, wgt_fd)
 
 
-    def plain_export(self, export_path, batch_size = 1):
+    def plain_export(self, export_path=None, batch_size = 1):
+        if export_path is None:
+            export_path = os.path.join(self.path, "export")
+
         with tf.Session(graph=tf.Graph()) as sess:
             features = self._model.features_placeholder()
             probs = self._model.model_fn(features, {}, tf.estimator.ModeKeys.PREDICT).predictions['probs']
