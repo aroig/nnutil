@@ -66,13 +66,13 @@ class Trainer:
                                          self._model,
                                          eval_dataset=eval_dataset,
                                          train_dataset=train_dataset,
-                                         label_key="label")
+                                         label_key="label",
+                                         resume=False)
 
         # Train the model
-        experiment.train_and_evaluate(steps=2000, resume=False)
-        # experiment.train(steps=10, resume=False)
+        # experiment.train_and_evaluate(steps=2000)
+        experiment.train_and_evaluate(steps=1)
 
         # Export a frozen model
-        export_path = os.path.join(experiment.path, "export")
-        experiment.export(export_path)
-        experiment.neurallabs_export(export_path)
+        experiment.export()
+        # experiment.neurallabs_export()

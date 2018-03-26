@@ -40,9 +40,9 @@ class ClassificationModel(BaseModel):
 
     def features_placeholder(self, batch_size=1):
         return {
-            'input': tf.placeholder(dtype=tf.float32,
+            'image': tf.placeholder(dtype=tf.float32,
                                     shape=(batch_size,) + self._shape,
-                                    name='input')
+                                    name='image')
         }
 
     def training_estimator_spec(self, loss):
