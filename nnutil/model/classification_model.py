@@ -1,10 +1,12 @@
 import numpy as np
 import tensorflow as tf
 
+from .base_model import BaseModel
 
-class ClassificationModel:
+class ClassificationModel(BaseModel):
     def __init__(self, name, shape, labels):
-        self._name = name
+        super().__init__(name)
+
         self._shape = shape
         self._labels = labels
 
@@ -135,14 +137,6 @@ class ClassificationModel:
 
     def classifier_network(self):
         raise NotImplementedError
-
-    def compose_layers(self, layers, x, training):
-        for l in layers:
-            if type(l) == tf.layers.Dropout:
-                x = l.apply(x, training=training)
-            else:
-                x = l.apply(x)
-        return x
 
     def model_fn(self, features, labels, mode):
         """Model function for classifier."""

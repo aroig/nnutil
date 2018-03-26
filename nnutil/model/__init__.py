@@ -1,3 +1,4 @@
-from .classification_model import ClassificationModel
-from .nlmodel_writer import NLModelWriter
-from .nlconvnet_model import NLConvNetModel
+from .base_model import *
+from .classification_model import *
+from .nlmodel_writer import *
+from .nlconvnet_model import *
