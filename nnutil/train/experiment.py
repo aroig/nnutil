@@ -26,6 +26,7 @@ class Experiment:
         # Path to the model directory
         self._path = os.path.abspath(path)
 
+        self._run_timestamp = datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
         if resume:
             all_runs = []
 
@@ -35,9 +36,6 @@ class Experiment:
 
             if len(all_runs) > 0:
                 self._run_timestamp = all_runs[-1]
-
-        if self._run_timestamp is None:
-            self._run_timestamp = datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
