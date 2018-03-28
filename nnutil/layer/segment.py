@@ -1,3 +1,4 @@
+import inspect
 import tensorflow as tf
 
 class Segment(tf.layers.Layer):
@@ -12,18 +13,25 @@ class Segment(tf.layers.Layer):
         self._activation = activation
         self._layers = layers
 
+    @property
+    def layers(self):
+        return self._layers
+
     def build(self, input_shape):
         shape = input_shape
         for l in self._layers:
             l.build(shape)
-            shape = l.compute_output_shape
+            shape = l.compute_output_shape(shape)
 
-        self.built = True
+        super(Segment, self).build(input_shape)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         x = inputs
         for l in self._layers:
-            x = l.apply(x)
+            sig = [p.name for p in inspect.signature(l.call).parameters.values()]
+
+            args = {k: kwargs[k] for k in set(sig) & set(kwargs.keys())}
+            x = l.apply(x, **args)
 
         if self._residual:
             output = inputs + x
