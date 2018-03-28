@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base_model import BaseModel
+from .. import layer
 
 class ClassificationModel(BaseModel):
     def __init__(self, name, shape, labels):
@@ -11,7 +12,7 @@ class ClassificationModel(BaseModel):
         self._labels = labels
 
         self._nlabels = len(self._labels)
-        self._layers = None
+        self._classifier = None
 
     @property
     def name(self):
@@ -27,12 +28,12 @@ class ClassificationModel(BaseModel):
 
     @property
     def layers(self):
-        return self._layers
+        return self._classifier.layers
 
     @property
     def layer_sizes(self):
         sizes = []
-        for l in self._layers:
+        for l in self._classifier.layers:
             for v in l.variables:
                 sizes.append(int(np.prod(v.shape)))
 
@@ -140,17 +141,19 @@ class ClassificationModel(BaseModel):
 
     def model_fn(self, features, labels, mode):
         """Model function for classifier."""
-        self._layers = self.classifier_network()
+        image = features['image']
+        labels = tf.cast(labels, tf.int32)
 
-        logits = self.compose_layers(self._layers, features['image'],
-                                     training=(mode==tf.estimator.ModeKeys.TRAIN))
+        training = (mode == tf.estimator.ModeKeys.TRAIN)
+
+        self._classifier = layer.Segment(layers=self.classifier_network())
+        logits = self._classifier.apply(image, training=training)
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(logits)
 
         # Calculate Loss (for both TRAIN and EVAL modes)
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=tf.cast(labels, tf.int32),
-                                                      logits=logits)
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
         tf.summary.scalar('loss', loss)
 
         # Configure the Training Op (for TRAIN mode)
