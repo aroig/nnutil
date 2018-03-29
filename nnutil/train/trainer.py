@@ -44,7 +44,7 @@ class Trainer:
             self._dataset = dataset.repeat().shuffle(buffer_size=1000)
 
 
-    def train(self):
+    def train(self, steps=None):
         # Split up train and eval
         eval_dataset, train_dataset = dataset.partition(
             self._dataset,
@@ -70,8 +70,10 @@ class Trainer:
                                          resume=False)
 
         # Train the model
-        # experiment.train_and_evaluate(steps=2000)
-        experiment.train_and_evaluate(steps=1)
+        if steps is None:
+            steps = 1000
+
+        experiment.train_and_evaluate(steps=steps)
 
         # Export a frozen model
         experiment.export()
