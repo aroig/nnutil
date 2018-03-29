@@ -39,6 +39,21 @@ class Layer_Segment(unittest.TestCase):
         self.assertEqual((1, 2), data[1].shape)
         np.testing.assert_array_almost_equal(data[0], data[1], decimal=5)
 
+    def test_layer_segment_dropout(self):
+        with tf.Session() as sess:
+            dropout = tf.layers.Dropout()
+            layer = nl.layer.Segment(layers=[dropout])
+
+            x0 = tf.constant([[1, 2, 3, 4]], dtype=tf.float32)
+            x = layer.apply(x0, training=False)
+
+            data = sess.run([x0, x])
+
+        self.assertEqual((1, 4), data[0].shape)
+        self.assertEqual((1, 4), data[1].shape)
+        np.testing.assert_array_almost_equal(data[0], data[1], decimal=5)
+
+
 
 
 if __name__ == '__main__':
