@@ -17,6 +17,5 @@ class BaseModel:
                 x = l.apply(x)
         return x
 
-    def gradient_norm(self, f, variables):
-        grad = [tf.gradient(f, v) for v in variables]
-        return sum([tf.reduce_sum(tf.square(g)) for g in grad])
+    def layer_gradients(self, f, layers=[]):
+        return [tf.gradient(f, v) for l in layers for v in l.variables]
