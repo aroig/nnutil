@@ -43,7 +43,10 @@ class ClassificationModel(BaseModel):
         return {
             'image': tf.placeholder(dtype=tf.float32,
                                     shape=(batch_size,) + self._shape,
-                                    name='image')
+                                    name='image'),
+            'label': tf.placeholder(dtype=tf.float32,
+                                    shape=(batch_size, self._nlabels),
+                                    name='label')
         }
 
     def training_estimator_spec(self, loss):
@@ -140,9 +143,8 @@ class ClassificationModel(BaseModel):
         raise NotImplementedError
 
     def model_fn(self, features, labels, mode):
-        """Model function for classifier."""
         image = features['image']
-        labels = tf.cast(labels, tf.int32)
+        labels = tf.cast(features['label'], tf.int32)
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
