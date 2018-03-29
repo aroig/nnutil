@@ -23,4 +23,4 @@ except:
 from . import train
 from . import model
 from . import util
-from . import layer
+from . import layers

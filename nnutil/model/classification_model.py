@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base_model import BaseModel
-from .. import layer
+from .. import layers
 
 class ClassificationModel(BaseModel):
     def __init__(self, name, shape, labels):
@@ -148,7 +148,7 @@ class ClassificationModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        self._classifier = layer.Segment(layers=self.classifier_network())
+        self._classifier = layers.Segment(layers=self.classifier_network())
         logits = self._classifier.apply(image, training=training)
 
         if mode == tf.estimator.ModeKeys.PREDICT:

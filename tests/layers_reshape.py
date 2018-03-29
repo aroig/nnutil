@@ -3,13 +3,13 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nnutil as nl
+import nnutil as nn
 
 
 class Layer_Reshape(unittest.TestCase):
     def test_layer_reshape(self):
         with tf.Session() as sess:
-            layer = nl.layer.Reshape(shape=(2, 2))
+            layer = nn.layers.Reshape(shape=(2, 2))
             x = tf.constant([[1, 2, 3, 4]], dtype=tf.float32)
             x = layer.apply(x)
             data = sess.run([x])
