@@ -133,7 +133,7 @@ class WGANModel(BaseModel):
         if self._autoencoder:
             loss_ae = tf.nn.l2_loss(code - code_ae) / tf.cast(batch_size, dtype=tf.float32)
 
-        loss_crit = - tf.reduce_mean(f_data - f_synth_ng)
+        loss_crit = -tf.reduce_mean(f_data - f_synth_ng)
 
         loss_grad = tf.square(1 - tf.nn.l2_loss(f_grad) / tf.cast(batch_size, dtype=tf.float32))
 
