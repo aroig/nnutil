@@ -2,37 +2,31 @@ import os
 import json
 import socket
 import argparse
+import importlib.machinery
 
 import numpy as np
 import tensorflow as tf
+
 import nnutil as nn
 
-from .. import dataset
-
 class Trainer:
-    def __init__(self, model, dataset, build_path, cluster=None, argv=[]):
+    def __init__(self, model, dataset, argv=[]):
         tf.logging.set_verbosity(tf.logging.INFO)
 
-        if cluster is not None:
-            task_index = None
-            hostname = socket.gethostname()
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--build', help='Dataset path')
+        parser.add_argument('--cluster', help='Cluster spec path', default=None)
+        args = parser.parse_args(argv)
 
-            for job, hosts in cluster.items():
-                for i, h in enumerate(hosts):
-                    if hostname == h.split('.')[0]:
-                        task_index = i
-                        job_name = job
+        # Load cluster_spec
+        loader = importlib.machinery.SourceFileLoader("cluster", args.cluster)
+        module = loader.load_module("cluster")
 
-            os.environ['TF_CONFIG'] = json.dumps({
-                'cluster': cluster,
-                'task': {'type': job_name, 'index': task_index}
-            })
-
-        self._build_path = os.path.abspath(build_path)
+        self._cluster = nn.train.Cluster(module.cluster)
+        self._build_path = os.path.abspath(args.build)
 
         # Launch tensorboard on the chief
-        if cluster is None or job_name == 'chief':
-            self._tensorboard = nn.visual.Tensorboard(self._build_path)
+        self._tensorboard = None
 
         self._batch_size = 32
         self._eval_fraction = 0.1
@@ -43,10 +37,22 @@ class Trainer:
         if dataset is not None:
             self._dataset = dataset.repeat().shuffle(buffer_size=1000)
 
+    def __enter__(self):
+        self._cluster.set_environment()
+
+        if self._cluster.is_chief():
+            self._tensorboard = nn.visual.Tensorboard(self._build_path)
+            self._tensorboard.__enter__()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._cluster.reset_environment()
+        self._tensorboard.__exit__(type, value, traceback)
+
 
     def train(self, steps=None):
         # Split up train and eval
-        eval_dataset, train_dataset = dataset.partition(
+        eval_dataset, train_dataset = nn.dataset.partition(
             self._dataset,
             dist=[self._eval_fraction, 1 - self._eval_fraction],
             key_fn=lambda x: x[0]['path'])
