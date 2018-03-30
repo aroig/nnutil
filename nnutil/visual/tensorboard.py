@@ -8,7 +8,6 @@ class Tensorboard:
     def __enter__(self):
         self._tboard_proc = subprocess.Popen([
             "tensorboard",
-            "--host=127.0.0.1",
             "--port=6006",
             "--logdir={0}".format(self._path)
         ])
