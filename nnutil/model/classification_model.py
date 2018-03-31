@@ -2,9 +2,9 @@ import os
 
 import numpy as np
 import tensorflow as tf
+import nnutil as nn
 
 from .base_model import BaseModel
-from .. import layers
 
 class ClassificationModel(BaseModel):
     def __init__(self, name, shape, labels):
@@ -51,13 +51,11 @@ class ClassificationModel(BaseModel):
                                     name='label')
         }
 
-    def class_summaries(self, confusion, labels):
+    def class_summaries(self, confusion, labels_freq):
+        tf.summary.image('confusion', tf.expand_dims(tf.expand_dims(confusion, axis=-3), axis=-1))
+
         # Shape: ()
         accuracy = tf.trace(confusion)
-
-        # Shape: (nlabels)
-        onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=self._nlabels)
-        label_stats = tf.reduce_mean(onehot_labels, axis=0)
 
         # Shape: (nlabels)
         class_accuracy = tf.stack([confusion[i,i] / tf.reduce_sum(confusion[i])
@@ -68,51 +66,36 @@ class ClassificationModel(BaseModel):
 
         for i, lb in enumerate(self._labels):
             name = 'class_freq/{}'.format(lb)
-            tf.summary.scalar(name, tf.reduce_mean(label_stats[i]))
+            tf.summary.scalar(name, tf.reduce_mean(labels_freq[i]))
 
         for i, lb in enumerate(self._labels):
             name = 'class_accuracy/{}'.format(lb)
             tf.summary.scalar(name, tf.reduce_mean(class_accuracy[i]))
 
-    def evaluation_metrics(self, confusion, labels):
-        metric_ops = {}
-
-        # Shape: ()
-        accuracy = tf.trace(confusion)
-        metric_ops['accuracy'] = tf.metrics.mean(accuracy)
-
-        # Shape: (nlabels)
-        onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=self._nlabels)
-        label_stats = tf.reduce_mean(onehot_labels, axis=0)
-
-        # Shape: (nlabels)
-        class_accuracy = tf.stack([confusion[i,i] / tf.reduce_sum(confusion[i])
-                                   for i in range(0, self._nlabels)])
-
-        for i, lb in enumerate(self._labels):
-            name = 'class_freq/{}'.format(lb)
-            metric_ops[name] = tf.metrics.mean(label_stats[i])
-
-        for i, lb in enumerate(self._labels):
-            name = 'class_accuracy/{}'.format(lb)
-            metric_ops[name] = tf.metrics.mean(class_accuracy[i])
-
-        return metric_ops
-
-
-    def training_estimator_spec(self, loss, confusion, labels, params, config):
+    def training_estimator_spec(self, loss, confusion, labels_freq, params, config):
         step = tf.train.get_global_step()
 
+        ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
         optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 
         # Manually apply gradients. We want the gradients for summaries.
         # We need to apply them manually in order to avoid having
         # duplicate gradient ops.
         gradients = optimizer.compute_gradients(loss)
-        train_op = optimizer.apply_gradients(gradients, global_step=step)
+
+        ema_update_ops = ema.apply([confusion, labels_freq])
+        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, ema_update_ops)
+
+        confusion_avg = ema.average(confusion)
+        labels_freq_avg = ema.average(labels_freq)
+
+        # Make sure we run update averages on each training step
+        extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(extra_ops):
+            train_op = optimizer.apply_gradients(gradients, global_step=step)
 
         self.variable_summaries(gradients)
-        self.class_summaries(confusion, labels)
+        self.class_summaries(confusion_avg, labels_freq_avg)
 
         training_hooks = []
 
@@ -123,16 +106,26 @@ class ClassificationModel(BaseModel):
             train_op=train_op
         )
 
-    def evaluation_estimator_spec(self, loss, confusion, labels, params, config):
+    def evaluation_estimator_spec(self, loss, confusion, labels_freq, params, config):
         evaluation_hooks = []
 
         eval_metric_ops = {}
 
-        self.class_summaries(confusion, labels)
+        confusion_avg, confusion_op = tf.metrics.mean_tensor(confusion)
+        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, confusion_op)
+
+        labels_freq_avg, labels_freq_op = tf.metrics.mean_tensor(labels_freq)
+        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, labels_freq_op)
+
+        # Make sure we run update averages on each training step
+        extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(extra_ops):
+            loss = tf.identity(loss)
+
+        self.class_summaries(confusion_avg, labels_freq_avg)
 
         evaluation_hooks.append(
-            tf.train.SummarySaverHook(
-                save_steps=params['eval_steps'],
+            nn.train.EvalSummarySaverHook(
                 output_dir=os.path.join(config.model_dir, "eval"),
                 summary_op=tf.summary.merge_all()
             )
@@ -176,7 +169,7 @@ class ClassificationModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        self._classifier = layers.Segment(layers=self.classifier_network(), name="classifier")
+        self._classifier = nn.layers.Segment(layers=self.classifier_network(), name="classifier")
         logits = self._classifier.apply(image, training=training)
 
         predicted_class = tf.argmax(input=logits, axis=1)
@@ -186,7 +179,9 @@ class ClassificationModel(BaseModel):
         confusion = tf.cast(confusion, dtype=tf.float32)
         confusion = confusion / tf.reduce_sum(confusion)
 
-        tf.summary.image('confusion', tf.expand_dims(tf.expand_dims(confusion, axis=-3), axis=-1))
+        # Shape: (nlabels)
+        onehot_labels = tf.one_hot(indices=tf.cast(labels, tf.int32), depth=self._nlabels)
+        labels_freq = tf.reduce_mean(onehot_labels, axis=0)
 
         # Orientation test
         # confusion = tf.constant([[0, 0, 0], [1, 0, 0], [0, 0, 0]], dtype=tf.float32)
@@ -196,11 +191,10 @@ class ClassificationModel(BaseModel):
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        tf.summary.scalar('loss', loss)
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
-            return self.training_estimator_spec(loss, confusion, labels, params, config)
+            return self.training_estimator_spec(loss, confusion, labels_freq, params, config)
 
         else:
-            return self.evaluation_estimator_spec(loss, confusion, labels, params, config)
+            return self.evaluation_estimator_spec(loss, confusion, labels_freq, params, config)
