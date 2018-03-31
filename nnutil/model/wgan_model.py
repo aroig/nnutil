@@ -1,8 +1,10 @@
+import os
+
 import numpy as np
 import tensorflow as tf
+import nnutil as nn
 
 from .base_model import BaseModel
-from .. import layers
 
 class WGANModel(BaseModel):
     def __init__(self, name, shape, code_size, autoencoder=False):
@@ -20,14 +22,6 @@ class WGANModel(BaseModel):
     def shape(self):
         return self._shape
 
-    @property
-    def generator_layers(self):
-        return self._generator.layers
-
-    @property
-    def critic_layers(self):
-        return self._critic.layers
-
     def features_placeholder(self, batch_size=1):
         return {
             'image': tf.placeholder(dtype=tf.float32,
@@ -35,25 +29,32 @@ class WGANModel(BaseModel):
                                     name='image')
         }
 
-    def training_estimator_spec(self, loss):
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    def autoencoder_summaries(self, image, code, synthetic):
+        if self._autoencoder:
+            tf.summary.image('sample', tf.concat([tf.expand_dims(image[0,...], 0),
+                                                  tf.expand_dims(synthetic[0,...], 0)], axis=2))
+
+        else:
+            tf.summary.image('sample', tf.expand_dims(synthetic[0,...], 0))
+
+
+
+    def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
+
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 
         # Manually apply gradients. We want the gradients for summaries. We need
         # to apply them manually in order to avoid having duplicate gradient ops.
         gradients = optimizer.compute_gradients(loss)
-        train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        # Gradients and weight summaries
-        for grad, weight in gradients:
-            # Compute per-batch normalized norms
-            axis = [i for i in range(1, len(grad.shape))]
-            grad_norm = tf.sqrt(tf.reduce_mean(tf.square(grad), axis=axis))
-            weight_norm = tf.sqrt(tf.reduce_mean(tf.square(weight), axis=axis))
+        # Make sure we run update averages on each training step
+        extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(extra_ops):
+            train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-            name = weight.name.replace(':', '_')
-            tf.summary.histogram('{}/weight'.format(name) , weight_norm)
-            tf.summary.histogram('{}/grad'.format(name) , grad_norm)
+        self.variable_summaries(gradients)
+        self.autoencoder_summaries(image, code, synthetic)
 
         training_hooks = []
 
@@ -62,16 +63,31 @@ class WGANModel(BaseModel):
                                           training_hooks=training_hooks,
                                           train_op=train_op)
 
-    def evaluation_estimator_spec(self, loss, synthetic):
+    def evaluation_estimator_spec(self, loss, image, code, synthetic, params, config):
         eval_metric_ops = {}
 
         evaluation_hooks = []
+
+        # Make sure we run update averages on each training step
+        extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(extra_ops):
+            loss = tf.identity(loss)
+
+        self.autoencoder_summaries(image, code, synthetic)
+
+        evaluation_hooks.append(
+            nn.train.EvalSummarySaverHook(
+                output_dir=os.path.join(config.model_dir, "eval"),
+                summary_op=tf.summary.merge_all()
+            )
+        )
+
         return tf.estimator.EstimatorSpec(mode=tf.estimator.ModeKeys.EVAL,
                                           loss=loss,
                                           evaluation_hooks=evaluation_hooks,
                                           eval_metric_ops=eval_metric_ops)
 
-    def prediction_estimator_spec(self, synthetic):
+    def prediction_estimator_spec(self, image, code, synthetic, params, config):
         predictions = {
             "synthetic": synthetic
         }
@@ -91,23 +107,23 @@ class WGANModel(BaseModel):
     def critic_network(self):
         raise NotImplementedError
 
-    def model_fn(self, features, labels, mode):
+    def model_fn(self, features, labels, mode, params, config):
         image = features['image']
         batch_size = tf.shape(image)[0]
+
         training=(mode==tf.estimator.ModeKeys.TRAIN)
 
         # Generator
-        self._generator = layers.Segment(layers=self.generative_network(), name="generator")
+        self._generator = nn.layers.Segment(layers=self.generative_network(), name="generator")
 
         code = tf.random_uniform(shape=(batch_size,) + self._code_shape,
                                  minval=-1., maxval=1., dtype=tf.float32)
 
         synthetic = tf.nn.sigmoid(self._generator.apply(code, training=training))
         synthetic_ng = tf.stop_gradient(synthetic)
-        tf.summary.image('gan/synthetic', tf.expand_dims(synthetic[0,...], 0))
 
         # Critic
-        self._critic = layers.Segment(layers=self.critic_network(), name="critic")
+        self._critic = nn.layers.Segment(layers=self.critic_network(), name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
@@ -115,12 +131,9 @@ class WGANModel(BaseModel):
 
         # Autoencoder
         if self._autoencoder:
-            self._encoder = layers.Segment(layers=self.encoder_network())
+            self._encoder = nn.layers.Segment(layers=self.encoder_network(), name="encoder")
 
             code_ae = self._encoder.apply(synthetic, training=training)
-
-            tf.summary.image('ae/input', tf.expand_dims(image[0,...], 0))
-            tf.summary.image('ae/synthetic', tf.expand_dims(synthetic[0,...], 0))
 
         # Losses
         loss_wgan = tf.reduce_mean(f_data - f_synth)
@@ -131,22 +144,22 @@ class WGANModel(BaseModel):
 
         loss_crit = -tf.reduce_mean(f_data - f_synth_ng)
 
-        loss_lip = sum([tf.square(tf.nn.relu(tf.nn.l2_loss(w) - 2)) for l in self._critic.layers for w in l.variables])
+        loss_lip = sum([tf.square(tf.nn.relu(tf.nn.l2_loss(w) - 2))
+                        for l in self._critic.layers for w in l.variables])
 
         alpha = tf.exp(-tf.stop_gradient(loss_lip))
         loss = alpha * (0.01 * loss_wgan + loss_crit) + loss_lip
 
         if mode == tf.estimator.ModeKeys.PREDICT:
-            return self.prediction_estimator_spec(synthetic)
+            return self.prediction_estimator_spec(image, code, synthetic, params, config)
 
-        # Calculate Loss (for both TRAIN and EVAL modes)
         tf.summary.scalar('loss/wgan', loss_wgan)
         tf.summary.scalar('loss/lip', loss_lip)
         tf.summary.scalar('loss/ae', loss_ae)
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
-            return self.training_estimator_spec(loss)
+            return self.training_estimator_spec(loss, image, code, synthetic, params, config)
 
         else:
-            return self.evaluation_estimator_spec(loss, synthetic)
+            return self.evaluation_estimator_spec(loss, image, code, synthetic, params, config)

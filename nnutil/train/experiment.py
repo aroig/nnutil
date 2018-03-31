@@ -86,9 +86,7 @@ class Experiment:
             log_step_count_steps=self._summary_steps)
 
         # hyperparameters
-        params = {
-            'eval_steps': self._eval_steps
-        }
+        params = {}
 
         estimator = tf.estimator.Estimator(model_fn=model_fn,
                                            model_dir=self.path,
