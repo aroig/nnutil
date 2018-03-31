@@ -19,3 +19,15 @@ class BaseModel:
 
     def layer_gradients(self, f, layers=[]):
         return [tf.gradient(f, v) for l in layers for v in l.variables]
+
+    def variable_summaries(self, gradients):
+        # Gradients and weight summaries
+        for grad, weight in gradients:
+            # Compute per-batch normalized norms
+            axis = [i for i in range(1, len(grad.shape))]
+            grad_norm = tf.sqrt(tf.reduce_mean(tf.square(grad), axis=axis))
+            weight_norm = tf.sqrt(tf.reduce_mean(tf.square(weight), axis=axis))
+
+            name = weight.name.replace(':', '_')
+            tf.summary.histogram('{}/weight'.format(name), weight_norm)
+            tf.summary.histogram('{}/grad'.format(name), grad_norm)
