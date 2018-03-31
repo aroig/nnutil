@@ -29,7 +29,10 @@ class Mutate(tf.data.Dataset):
         if self._colorspace:
             image = tf.image.random_brightness(image, max_delta=0.3)
             image = tf.image.random_contrast(image, lower=0.6, upper=1.8)
-            image = tf.image.random_saturation(image, lower=0.6, upper=1.8)
+
+            image = tf.cond(tf.equal(tf.shape(image)[-1], 3),
+                            lambda: tf.image.random_saturation(image, lower=0.6, upper=1.8),
+                            lambda: image)
 
         feature['image'] = tf.clip_by_value(image, 0.0, 1.0)
         return feature

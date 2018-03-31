@@ -24,6 +24,17 @@ def labelled_images(path, shape, labels=None, tfrecord=False):
         image = tf.reshape(image, shape=parsed_features['shape'])
 
         image = tf.image.resize_images(image, size=shape[0:2])
+
+        if shape[2] == 1:
+            image = tf.cond(tf.equal(parsed_features['shape'][2], 1),
+                            lambda: image,
+                            lambda: tf.image.rgb_to_grayscale(image))
+
+        elif shape[2] == 3:
+            image = tf.cond(tf.equal(parsed_features['shape'][2], 3),
+                            lambda: image,
+                            lambda: tf.image.grayscale_to_rgb(image))
+
         parsed_features['image'] = tf.reshape(image, shape=shape)
 
         return parsed_features
