@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
+import tensorboard as tb
 import nnutil as nn
 
 from .base_model import BaseModel
@@ -71,6 +72,18 @@ class ClassificationModel(BaseModel):
         for i, lb in enumerate(self._labels):
             name = 'class_accuracy/{}'.format(lb)
             tf.summary.scalar(name, tf.reduce_mean(class_accuracy[i]))
+
+    def pr_curve_metric(self, probabilities, labels):
+        for i, lb in enumerate(self._labels):
+            summary, update_op = tb.summary.pr_curve_streaming_op(
+                'pr/{}'.format(lb),
+                predictions=probabilities[:, i],
+                labels=tf.cast(tf.equal(labels, i), tf.bool),
+                num_thresholds=200,
+                metrics_collections='pr')
+
+            tf.add_to_collection(tf.GraphKeys.SUMMARIES, summary)
+            tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_op)
 
     def training_estimator_spec(self, loss, confusion, labels_freq, params, config):
         step = tf.train.get_global_step()
@@ -172,6 +185,8 @@ class ClassificationModel(BaseModel):
         self._classifier = nn.layers.Segment(layers=self.classifier_network(), name="classifier")
         logits = self._classifier.apply(image, training=training)
 
+        probabilities = tf.reshape(tf.nn.softmax(logits), shape=(-1, self._nlabels))
+
         predicted_class = tf.argmax(input=logits, axis=1)
 
         # Shape: (nlabels, nlabels)
@@ -197,4 +212,5 @@ class ClassificationModel(BaseModel):
             return self.training_estimator_spec(loss, confusion, labels_freq, params, config)
 
         else:
+            self.pr_curve_metric(probabilities, labels)
             return self.evaluation_estimator_spec(loss, confusion, labels_freq, params, config)
