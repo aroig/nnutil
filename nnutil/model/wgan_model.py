@@ -30,9 +30,9 @@ class WGANModel(BaseModel):
 
     def features_placeholder(self, batch_size=1):
         return {
-            'input': tf.placeholder(dtype=tf.float32,
+            'image': tf.placeholder(dtype=tf.float32,
                                     shape=(batch_size,) + self._shape,
-                                    name='input')
+                                    name='image')
         }
 
     def training_estimator_spec(self, loss):
@@ -97,7 +97,7 @@ class WGANModel(BaseModel):
         training=(mode==tf.estimator.ModeKeys.TRAIN)
 
         # Generator
-        self._generator = layers.Segment(layers=self.generative_network())
+        self._generator = layers.Segment(layers=self.generative_network(), name="generator")
 
         code = tf.random_uniform(shape=(batch_size,) + self._code_shape,
                                  minval=-1., maxval=1., dtype=tf.float32)
@@ -107,12 +107,11 @@ class WGANModel(BaseModel):
         tf.summary.image('gan/synthetic', tf.expand_dims(synthetic[0,...], 0))
 
         # Critic
-        self._critic = layers.Segment(layers=self.critic_network())
+        self._critic = layers.Segment(layers=self.critic_network(), name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
         f_data = self._critic.apply(image, training=training)
-        f_grad = tf.gradients(f_synth_ng, synthetic_ng, stop_gradients=[synthetic_ng])
 
         # Autoencoder
         if self._autoencoder:
@@ -123,9 +122,6 @@ class WGANModel(BaseModel):
             tf.summary.image('ae/input', tf.expand_dims(image[0,...], 0))
             tf.summary.image('ae/synthetic', tf.expand_dims(synthetic[0,...], 0))
 
-        # f_synth_ae = self._critic.apply(synthetic_ae, training=training)
-        # f_synth_ng = self._critic.apply(tf.stop_gradient(synthetic_gen), training=training)
-
         # Losses
         loss_wgan = tf.reduce_mean(f_data - f_synth)
 
@@ -135,16 +131,17 @@ class WGANModel(BaseModel):
 
         loss_crit = -tf.reduce_mean(f_data - f_synth_ng)
 
-        loss_grad = tf.square(1 - tf.nn.l2_loss(f_grad) / tf.cast(batch_size, dtype=tf.float32))
+        loss_lip = sum([tf.square(tf.nn.relu(tf.nn.l2_loss(w) - 2)) for l in self._critic.layers for w in l.variables])
 
-        loss = 0.01 * loss_wgan + loss_crit + 10 * loss_grad
+        alpha = tf.exp(-tf.stop_gradient(loss_lip))
+        loss = alpha * (0.01 * loss_wgan + loss_crit) + loss_lip
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(synthetic)
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         tf.summary.scalar('loss/wgan', loss_wgan)
-        tf.summary.scalar('loss/grad', loss_grad)
+        tf.summary.scalar('loss/lip', loss_lip)
         tf.summary.scalar('loss/ae', loss_ae)
 
         # Configure the Training Op (for TRAIN mode)
