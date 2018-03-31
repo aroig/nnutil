@@ -5,8 +5,7 @@ from datetime import datetime
 import tensorflow as tf
 import numpy as np
 
-from .tensorboard_profiler_hook import TensorboardProfilerHook
-from ..model import NLModelWriter
+import nnutil as nn
 
 class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None, resume=False, label_key="label", seed=None):
@@ -19,6 +18,7 @@ class Experiment:
         self._log_secs = 60
         self._checkpoint_secs = 60
         self._summary_steps = 10
+        self._eval_steps = 5
 
         # TODO: make up a name mixing model and dataset names
         self._name = self._model.name
@@ -42,7 +42,7 @@ class Experiment:
 
     @property
     def path(self):
-        return os.path.join(self._path, self._name, self._run_timestamp)
+        return os.path.join(self._path, self._run_timestamp)
 
     @property
     def model(self):
@@ -51,19 +51,25 @@ class Experiment:
     def hooks(self, mode):
         hooks = []
 
-        log_tensors = {
+        # log_tensors = {
             # "loss": "loss",
             # "confusion": "confusion"
             # "probabilities": "probabilities"
-        }
+        # }
 
-        hooks.append(
-            tf.train.LoggingTensorHook(
-                every_n_secs=self._log_secs,
-                tensors=log_tensors))
+        # hooks.append(
+        #     tf.train.LoggingTensorHook(
+        #         every_n_secs=self._log_secs,
+        #         tensors=log_tensors))
+
+        # Save summaries in eval mode too.
 
         if mode == 'prof':
-            hooks.append(TensorboardProfilerHook(save_secs=self._log_secs, output_dir=self.path))
+            hooks.append(
+                nn.train.TensorboardProfilerHook(
+                    save_secs=self._log_secs,
+                    output_dir=self.path)
+            )
 
         return hooks
 
@@ -79,7 +85,15 @@ class Experiment:
             keep_checkpoint_max=10,
             log_step_count_steps=self._summary_steps)
 
-        estimator = tf.estimator.Estimator(model_fn=model_fn, model_dir=self.path, config=config)
+        # hyperparameters
+        params = {
+            'eval_steps': self._eval_steps
+        }
+
+        estimator = tf.estimator.Estimator(model_fn=model_fn,
+                                           model_dir=self.path,
+                                           config=config,
+                                           params=params)
 
         return estimator
 
@@ -94,9 +108,9 @@ class Experiment:
         def input_fn():
            return  self.iterator(train_dataset)
 
+        estimator = self.estimator('prof')
         hooks = self.hooks('prof')
 
-        estimator = self.estimator('prof', resume=False)
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
 
@@ -105,9 +119,9 @@ class Experiment:
         def input_fn():
            return self.iterator(train_dataset)
 
+        estimator = self.estimator('train')
         hooks = self.hooks('train')
 
-        estimator = self.estimator('train', resume=resume)
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
 
@@ -116,9 +130,9 @@ class Experiment:
         def input_fn():
             return self.iterator(eval_dataset)
 
+        estimator = self.estimator('eval')
         hooks = self.hooks('eval')
 
-        estimator = self.estimator('eval')
         results = estimator.evaluate(input_fn=input_fn, hooks=hooks)
         return results
 
@@ -133,10 +147,10 @@ class Experiment:
         def eval_input_fn():
             return self.iterator(eval_dataset)
 
-        train_hooks = self.hooks('train')
-        evaluation_hooks = []
-
         estimator = self.estimator('train')
+        train_hooks = self.hooks('train')
+        evaluation_hooks = self.hooks('eval')
+
         tf.estimator.train_and_evaluate(
             estimator,
             tf.estimator.TrainSpec(
@@ -147,7 +161,7 @@ class Experiment:
                 hooks=evaluation_hooks,
                 input_fn=eval_input_fn,
                 throttle_secs=self._checkpoint_secs,
-                steps=5))
+                steps=self._eval_steps))
 
 
     def export(self, export_path=None, batch_size=1, as_text=False):
@@ -219,7 +233,7 @@ class Experiment:
                     config = estimator._session_config),
                 hooks = []) as sess:
 
-                writer = NLModelWriter(model, sess)
+                writer = nn.model.NLModelWriter(model, sess)
 
                 net_path = os.path.join(export_path, "{}.net".format(self._name))
                 wgt_path = os.path.join(export_path, "{}.wgt".format(self._name))

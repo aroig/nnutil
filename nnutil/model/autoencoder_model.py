@@ -48,11 +48,8 @@ class AutoencoderModel(BaseModel):
     def evaluation_estimator_spec(self, loss):
         eval_metric_ops = {}
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
-        gradients = optimizer.compute_gradients(loss)
-        self.variable_summaries(gradients)
-
         evaluation_hooks = []
+
         return tf.estimator.EstimatorSpec(mode=tf.estimator.ModeKeys.EVAL,
                                           loss=loss,
                                           evaluation_hooks=evaluation_hooks,
