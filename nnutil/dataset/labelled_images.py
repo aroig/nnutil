@@ -21,7 +21,9 @@ def labelled_images(path, shape, labels=None, tfrecord=False):
         parsed_features = tf.parse_single_example(example_proto, features)
 
         image = tf.sparse_tensor_to_dense(parsed_features['image'], default_value=0)
-        shape = parsed_features['shape']
+        image = tf.reshape(image, shape=parsed_features['shape'])
+
+        image = tf.image.resize_images(image, size=shape[0:2])
         parsed_features['image'] = tf.reshape(image, shape=shape)
 
         return parsed_features
