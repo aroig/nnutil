@@ -28,7 +28,6 @@ class Trainer:
         # Launch tensorboard on the chief
         self._tensorboard = None
 
-        self._batch_size = 32
         self._eval_fraction = 0.1
 
         self._model = model
@@ -50,7 +49,7 @@ class Trainer:
         self._tensorboard.__exit__(type, value, traceback)
 
 
-    def train(self, steps=None):
+    def train(self, batch_size=32, steps=None):
         # Split up train and eval
         eval_dataset, train_dataset = nn.dataset.partition(
             self._dataset,
@@ -61,8 +60,8 @@ class Trainer:
         train_dataset = nn.dataset.mutate(train_dataset)
 
         # Take batches
-        eval_dataset = eval_dataset.batch(self._batch_size)
-        train_dataset = train_dataset.batch(self._batch_size)
+        eval_dataset = eval_dataset.batch(batch_size)
+        train_dataset = train_dataset.batch(batch_size)
 
         # Visualization
         # nl.visual.plot_sample(train_dataset)

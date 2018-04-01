@@ -42,7 +42,7 @@ class WGANModel(BaseModel):
     def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0, beta2=0.9)
 
         # Manually apply gradients. We want the gradients for summaries. We need
         # to apply them manually in order to avoid having duplicate gradient ops.
@@ -122,12 +122,18 @@ class WGANModel(BaseModel):
         synthetic = tf.nn.sigmoid(self._generator.apply(code, training=training))
         synthetic_ng = tf.stop_gradient(synthetic)
 
+        epsilon = tf.random_uniform(shape=(), minval=0, maxval=1., dtype=tf.float32)
+        synthmix = epsilon * image + (1 - epsilon) * synthetic_ng
+
         # Critic
         self._critic = nn.layers.Segment(layers=self.critic_network(), name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
         f_data = self._critic.apply(image, training=training)
+
+        f_mix = self._critic.apply(synthmix, training=training)
+        f_grad = tf.gradients(f_mix, synthmix)
 
         # Autoencoder
         if self._autoencoder:
@@ -144,11 +150,13 @@ class WGANModel(BaseModel):
 
         loss_crit = -tf.reduce_mean(f_data - f_synth_ng)
 
-        loss_lip = sum([tf.square(tf.nn.relu(tf.nn.l2_loss(w) - 2))
-                        for l in self._critic.layers for w in l.variables])
+        loss_lip = tf.square(tf.norm(f_grad, ord=2) - 1)
 
-        alpha = tf.exp(-tf.stop_gradient(loss_lip))
-        loss = alpha * (0.01 * loss_wgan + loss_crit) + loss_lip
+        # loss_lip = sum([tf.square(tf.nn.relu(tf.nn.l2_loss(w) - 2))
+        #                 for l in self._critic.layers for w in l.variables])
+
+        alpha = tf.exp(-1 * tf.stop_gradient(loss_lip))
+        loss = alpha * (0.2 * loss_wgan + loss_crit) + 10 * loss_lip
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(image, code, synthetic, params, config)
