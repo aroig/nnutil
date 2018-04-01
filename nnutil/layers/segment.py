@@ -17,6 +17,10 @@ class Segment(tf.layers.Layer):
     def layers(self):
         return self._layers
 
+    @property
+    def variables(self):
+        return [v for l in self._layers for v in l.variables]
+
     def build(self, input_shape):
         shape = input_shape
         for l in self._layers:

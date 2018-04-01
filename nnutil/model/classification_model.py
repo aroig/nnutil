@@ -73,17 +73,8 @@ class ClassificationModel(BaseModel):
             name = 'class_accuracy/{}'.format(lb)
             tf.summary.scalar(name, tf.reduce_mean(class_accuracy[i]))
 
-    def pr_curve_metric(self, probabilities, labels):
-        for i, lb in enumerate(self._labels):
-            summary, update_op = tb.summary.pr_curve_streaming_op(
-                'pr/{}'.format(lb),
-                predictions=probabilities[:, i],
-                labels=tf.cast(tf.equal(labels, i), tf.bool),
-                num_thresholds=200,
-                metrics_collections='pr')
-
-            tf.add_to_collection(tf.GraphKeys.SUMMARIES, summary)
-            tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_op)
+    def layer_summaries(self, segment, gradients):
+        nn.summary.layers(segment.name, segment.layers, gradients)
 
     def training_estimator_spec(self, loss, confusion, labels_freq, params, config):
         step = tf.train.get_global_step()
@@ -107,7 +98,7 @@ class ClassificationModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        self.variable_summaries(gradients)
+        self.layer_summaries(self._classifier, gradients)
         self.class_summaries(confusion_avg, labels_freq_avg)
 
         training_hooks = []
@@ -212,5 +203,5 @@ class ClassificationModel(BaseModel):
             return self.training_estimator_spec(loss, confusion, labels_freq, params, config)
 
         else:
-            self.pr_curve_metric(probabilities, labels)
+            nn.summary.pr_curve("prcurve", probabilities, labels, label_names=self._labels)
             return self.evaluation_estimator_spec(loss, confusion, labels_freq, params, config)
