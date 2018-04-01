@@ -178,7 +178,7 @@ class ClassificationModel(BaseModel):
 
         probabilities = tf.reshape(tf.nn.softmax(logits), shape=(-1, self._nlabels))
 
-        predicted_class = tf.argmax(input=logits, axis=1)
+        predicted_class = tf.argmax(logits, axis=1)
 
         # Shape: (nlabels, nlabels)
         confusion = tf.confusion_matrix(labels, predicted_class, self._nlabels)
@@ -200,6 +200,7 @@ class ClassificationModel(BaseModel):
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
+            nn.summary.activation_map("activation", logits, image)
             return self.training_estimator_spec(loss, confusion, labels_freq, params, config)
 
         else:
