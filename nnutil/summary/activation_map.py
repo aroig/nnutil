@@ -7,7 +7,7 @@ def activation_map(name, logits, image):
     heatmap = grads[0]
     image = image[0]
 
-    heatmap = tf.square(heatmap)
+    heatmap = tf.abs(heatmap)
     heatmap = heatmap / tf.reduce_max(heatmap)
 
     masked_image = tf.concat([tf.expand_dims(image, 0),
