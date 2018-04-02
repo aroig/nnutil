@@ -6,15 +6,18 @@ def pr_curve(name, probabilities, labels, label_names=None):
         label_names = ['{}'.format(i) for i in range(0, labels.shape[-1])]
 
     summary_list = []
-    for i, lb in enumerate(label_names):
-        summary, update_op = tb.summary.pr_curve_streaming_op(
-            '{}/{}'.format(name, lb),
-            predictions=probabilities[:, i],
-            labels=tf.cast(tf.equal(labels, i), tf.bool),
-            num_thresholds=200,
-            metrics_collections=[tf.GraphKeys.SUMMARIES],
-            updates_collections=[tf.GraphKeys.UPDATE_OPS])
+    with tf.name_scope(name):
+        for i, lb in enumerate(label_names):
+            summary, update_op = tb.summary.pr_curve_streaming_op(
+                lb,
+                predictions=probabilities[:, i],
+                labels=tf.cast(tf.equal(labels, i), tf.bool),
+                num_thresholds=200,
+                metrics_collections=[tf.GraphKeys.SUMMARIES],
+                updates_collections=[tf.GraphKeys.UPDATE_OPS])
 
-        summary_list.append(summary)
+            summary_list.append(summary)
 
-    return tf.summary.merge(summary_list)
+        merged_summary = tf.summary.merge(summary_list)
+
+    return merged_summary
