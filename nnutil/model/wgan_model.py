@@ -103,13 +103,13 @@ class WGANModel(BaseModel):
                                           predictions=predictions,
                                           export_outputs=exports)
 
-    def encoder_network(self):
+    def encoder_network(self, params):
         raise NotImplementedError
 
-    def generative_network(self):
+    def generative_network(self, params):
         raise NotImplementedError
 
-    def critic_network(self):
+    def critic_network(self, params):
         raise NotImplementedError
 
     def model_fn(self, features, labels, mode, params, config):
@@ -119,7 +119,8 @@ class WGANModel(BaseModel):
         training=(mode==tf.estimator.ModeKeys.TRAIN)
 
         # Generator
-        self._generator = nn.layers.Segment(layers=self.generative_network(), name="generator")
+        layers = self.generative_network(params)
+        self._generator = nn.layers.Segment(layers, name="generator")
 
         code = tf.random_uniform(shape=(batch_size,) + self._code_shape,
                                  minval=-1., maxval=1., dtype=tf.float32)
@@ -131,7 +132,8 @@ class WGANModel(BaseModel):
         synthmix = epsilon * image + (1 - epsilon) * synthetic_ng
 
         # Critic
-        self._critic = nn.layers.Segment(layers=self.critic_network(), name="critic")
+        layers = self.critic_network(params)
+        self._critic = nn.layers.Segment(layers, name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
@@ -142,7 +144,8 @@ class WGANModel(BaseModel):
 
         # Autoencoder
         if self._autoencoder:
-            self._encoder = nn.layers.Segment(layers=self.encoder_network(), name="encoder")
+            layers = self.encoder_network(params)
+            self._encoder = nn.layers.Segment(layers, name="encoder")
 
             code_ae = self._encoder.apply(synthetic, training=training)
 

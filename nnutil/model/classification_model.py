@@ -139,7 +139,7 @@ class ClassificationModel(BaseModel):
             export_outputs=exports
         )
 
-    def classifier_network(self):
+    def classifier_network(self, params):
         raise NotImplementedError
 
     def model_fn(self, features, labels, mode, params, config):
@@ -148,7 +148,8 @@ class ClassificationModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        self._classifier = nn.layers.Segment(layers=self.classifier_network(), name="classifier")
+        layers = self.classifier_network(params)
+        self._classifier = nn.layers.Segment(layers, name="classifier")
         logits = self._classifier.apply(image, training=training)
 
         with tf.name_scope("prediction"):

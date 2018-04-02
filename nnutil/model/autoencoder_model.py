@@ -95,10 +95,10 @@ class AutoencoderModel(BaseModel):
                                           predictions=predictions,
                                           export_outputs=exports)
 
-    def encoder_network(self):
+    def encoder_network(self, params):
         raise NotImplementedError
 
-    def decoder_network(self):
+    def decoder_network(self, params):
         raise NotImplementedError
 
     def model_fn(self, features, labels, mode, params, config):
@@ -106,8 +106,11 @@ class AutoencoderModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        self._decoder = nn.layers.Segment(layers=self.decoder_network(), name="decoder")
-        self._encoder = nn.layers.Segment(layers=self.encoder_network(), name="encoder")
+        layers = self.decoder_network(params)
+        self._decoder = nn.layers.Segment(layers, name="decoder")
+
+        layers=self.encoder_network(params)
+        self._encoder = nn.layers.Segment(layers, name="encoder")
 
         code = self._encoder.apply(image, training=training)
         logits = self._decoder.apply(code, training=training)
