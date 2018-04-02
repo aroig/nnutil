@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorboard as tb
+import numpy as np
 
 from tensorboard.plugins.histogram.metadata import create_summary_metadata
 
@@ -42,7 +43,9 @@ def layers(name, layers, gradients):
                                                  vars_tensor,
                                                  summary_metadata=metadata)
 
-        metadata = create_summary_metadata(display_name='sizes', description=None)
+        total_size = np.sum([np.prod(v.shape) for l in layers for v in l.variables])
+        metadata = create_summary_metadata(display_name='sizes',
+                                           description='total: {}'.format(total_size))
         sizes_summary = tf.summary.tensor_summary('sizes',
                                                   sizes_tensor,
                                                   summary_metadata=metadata)

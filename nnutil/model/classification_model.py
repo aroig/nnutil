@@ -17,6 +17,8 @@ class ClassificationModel(BaseModel):
         self._nlabels = len(self._labels)
         self._classifier = None
 
+        self._learning_rate = 0.001
+
     @property
     def name(self):
         return self._name
@@ -56,7 +58,7 @@ class ClassificationModel(BaseModel):
         step = tf.train.get_global_step()
 
         ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+        optimizer = tf.train.AdamOptimizer(learning_rate=self._learning_rate)
 
         # Manually apply gradients. We want the gradients for summaries.
         # We need to apply them manually in order to avoid having

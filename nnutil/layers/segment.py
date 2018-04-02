@@ -1,5 +1,6 @@
 import inspect
 import tensorflow as tf
+import numpy as np
 
 class Segment(tf.layers.Layer):
     def __init__(self, layers, residual=False, activation=None, activity_regularizer=None,
@@ -20,6 +21,10 @@ class Segment(tf.layers.Layer):
     @property
     def variables(self):
         return [v for l in self._layers for v in l.variables]
+
+    @property
+    def size(self):
+        return np.sum([np.prod(v.shape) for l in self._layers for v in l.variables])
 
     def build(self, input_shape):
         shape = input_shape
