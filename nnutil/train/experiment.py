@@ -63,7 +63,6 @@ class Experiment:
 
         return hooks
 
-
     def estimator(self, mode):
         model_fn = self._model.model_fn
 
@@ -101,7 +100,6 @@ class Experiment:
 
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
-
     def train(self, steps=2000):
         train_dataset = self._train_dataset
         def input_fn():
@@ -111,7 +109,6 @@ class Experiment:
         hooks = self.hooks('train')
 
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
-
 
     def evaluate(self):
         eval_dataset = self._eval_dataset
@@ -123,7 +120,6 @@ class Experiment:
 
         results = estimator.evaluate(input_fn=input_fn, hooks=hooks)
         return results
-
 
     def train_and_evaluate(self, steps=2000):
 
@@ -151,7 +147,6 @@ class Experiment:
                 throttle_secs=self._checkpoint_secs,
                 steps=self._eval_steps))
 
-
     def export(self, export_path=None, batch_size=1, as_text=False):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
@@ -172,13 +167,15 @@ class Experiment:
 
         # Freeze exported graph
         with tf.Session(graph=tf.Graph()) as sess:
-            tf.saved_model.loader.load(sess, [ tf.saved_model.tag_constants.SERVING ], savemodel_path)
+            tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], savemodel_path)
+
+            # TODO: need to get list of output ops from the model
 
             # Transform variables to constants and strip unused ops
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
                 sess,
                 tf.get_default_graph().as_graph_def(),
-                [ "probabilities" ]
+                ["probabilities"]
             )
 
             if as_text:
@@ -188,57 +185,23 @@ class Experiment:
 
             tf.train.write_graph(frozen_graph_def, export_path, model_pb, as_text=as_text)
 
-
-    def neurallabs_export(self, export_path=None):
-        if export_path is None:
-            export_path = os.path.join(self.path, "export")
-
-        model = self._model
-        estimator = self.estimator('train')
-
-        # TODO: Find a better way to extract the weights. We need to setup an estimator within a session of our own.
-        # This is an adaptation of tf.estimator.Estimator.predict
-        checkpoint_path = tf.train.latest_checkpoint(estimator._model_dir)
-        if not checkpoint_path:
-            raise ValueError('Could not find trained model in model_dir: {}.'.format(estimator._model_dir))
-
-        eval_dataset = self._eval_dataset
-        def input_fn():
-            return self.iterator(eval_dataset)
-
-        with tf.Graph().as_default() as g:
-            tf.set_random_seed(estimator._config.tf_random_seed)
-            estimator._create_and_assert_global_step(g)
-
-            features, input_hooks = estimator._get_features_from_input_fn(input_fn, tf.estimator.ModeKeys.PREDICT)
-            estimator_spec = estimator._call_model_fn(features, None, tf.estimator.ModeKeys.PREDICT, estimator.config)
-            predictions = estimator._extract_keys(estimator_spec.predictions, None)
-
-            with tf.train.MonitoredSession(
-                session_creator = tf.train.ChiefSessionCreator(
-                    checkpoint_filename_with_path = checkpoint_path,
-                    scaffold = estimator_spec.scaffold,
-                    config = estimator._session_config),
-                hooks = []) as sess:
-
-                writer = model.NLModelWriter(model, sess)
-
-                net_path = os.path.join(export_path, "{}.net".format(self._name))
-                wgt_path = os.path.join(export_path, "{}.wgt".format(self._name))
-
-                with open(net_path, 'w') as net_fd, open(wgt_path, 'w') as wgt_fd:
-                    writer.write(net_fd, wgt_fd)
-
-
     def plain_export(self, export_path=None, batch_size = 1):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
 
         with tf.Session(graph=tf.Graph()) as sess:
             features = self._model.features_placeholder()
-            probs = self._model.model_fn(features, {}, tf.estimator.ModeKeys.PREDICT).predictions['probs']
+
+            estimator_spec = self._model.model_fn(features,
+                                               {},
+                                               tf.estimator.ModeKeys.PREDICT)
+
+            # TODO: need to get list of predictions from the model
+
+            probs = estimator_spec.predictions['probs']
 
             sess.run(tf.global_variables_initializer())
+
             # TODO: need to load variables from the last checkpoint
 
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
@@ -247,5 +210,12 @@ class Experiment:
                 [ probs.op.name ]
             )
 
-            tf.train.write_graph(sess.graph, export_path, '{}.pbtxt'.format(self._name), as_text=True)
-            tf.train.write_graph(frozen_graph_def, export_path, '{}.pb'.format(self._name), as_text=False)
+            tf.train.write_graph(sess.graph,
+                                 export_path,
+                                 '{}.pbtxt'.format(self._name),
+                                 as_text=True)
+
+            tf.train.write_graph(frozen_graph_def,
+                                 export_path,
+                                 '{}.pb'.format(self._name),
+                                 as_text=False)
