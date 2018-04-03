@@ -23,6 +23,22 @@ class Segment(tf.layers.Layer):
         return [v for l in self._layers for v in l.variables]
 
     @property
+    def trainable_variables(self):
+        return [v for l in self._layers for v in l.trainable_variables]
+
+    @property
+    def non_trainable_variables(self):
+        return [v for l in self._layers for v in l.non_trainable_variables]
+
+    @property
+    def losses(self):
+        return [loss for l in self._layers for loss in l.losses]
+
+    @property
+    def updates(self):
+        return [u for l in self._layers for u in l.updates]
+
+    @property
     def size(self):
         return np.sum([np.prod(v.shape) for l in self._layers for v in l.variables])
 
