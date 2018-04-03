@@ -32,8 +32,9 @@ class AutoencoderModel(BaseModel):
 
     def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
+        learning_rate = params.get('learning_rate', 0.001)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
         # Manually apply gradients. We want the gradients for summaries.
         # We need to apply them manually in order to avoid having
@@ -108,11 +109,8 @@ class AutoencoderModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        layers = self.decoder_network(params)
-        self._decoder = layers.Segment(layers, name="decoder")
-
-        layers=self.encoder_network(params)
-        self._encoder = layers.Segment(layers, name="encoder")
+        self._decoder = layers.Segment(self.decoder_network(params), name="decoder")
+        self._encoder = layers.Segment(self.encoder_network(params), name="encoder")
 
         code = self._encoder.apply(image, training=training)
         logits = self._decoder.apply(code, training=training)

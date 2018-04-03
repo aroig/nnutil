@@ -45,9 +45,10 @@ class ClassificationModel(BaseModel):
 
     def training_estimator_spec(self, loss, confusion, params, config):
         step = tf.train.get_global_step()
+        learning_rate = params.get('learning_rate', 0.001)
 
         ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
-        optimizer = tf.train.AdamOptimizer(learning_rate=self._learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
         # Manually apply gradients. We want the gradients for summaries.
         # We need to apply them manually in order to avoid having
@@ -139,21 +140,20 @@ class ClassificationModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        layers = self.classifier_network(params)
-        self._classifier = layers.Segment(layers, name="classifier")
+        self._classifier = layers.Segment(self.classifier_network(params), name="classifier")
         logits = self._classifier.apply(image, training=training)
 
         with tf.name_scope("prediction"):
             probabilities = tf.reshape(tf.nn.softmax(logits), shape=(-1, self._nlabels))
             predicted_class = tf.argmax(logits, axis=1)
 
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return self.prediction_estimator_spec(logits, params, config)
+
         with tf.name_scope("confusion"):
             # Shape: (nlabels pred, nlabels truth)
             confusion = tf.confusion_matrix(labels, predicted_class, self._nlabels)
             confusion = tf.cast(confusion, dtype=tf.float32)
-
-        if mode == tf.estimator.ModeKeys.PREDICT:
-            return self.prediction_estimator_spec(logits, params, config)
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)

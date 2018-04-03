@@ -37,8 +37,10 @@ class WGANModel(BaseModel):
 
     def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
+        learning_rate = params.get('learning_rate', 0.0001)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0, beta2=0.9)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,
+                                           beta1=0, beta2=0.9)
 
         # Manually apply gradients. We want the gradients for summaries. We need
         # to apply them manually in order to avoid having duplicate gradient ops.
@@ -128,8 +130,7 @@ class WGANModel(BaseModel):
         training=(mode==tf.estimator.ModeKeys.TRAIN)
 
         # Generator
-        layers = self.generative_network(params)
-        self._generator = layers.Segment(layers, name="generator")
+        self._generator = layers.Segment(self.generative_network(params), name="generator")
 
         code = tf.random_uniform(shape=(batch_size,) + self._code_shape,
                                  minval=-1., maxval=1., dtype=tf.float32)
@@ -141,8 +142,7 @@ class WGANModel(BaseModel):
         synthmix = epsilon * image + (1 - epsilon) * synthetic_ng
 
         # Critic
-        layers = self.critic_network(params)
-        self._critic = layers.Segment(layers, name="critic")
+        self._critic = layers.Segment(self.critic_network(params), name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
@@ -153,8 +153,7 @@ class WGANModel(BaseModel):
 
         # Autoencoder
         if self._autoencoder:
-            layers = self.encoder_network(params)
-            self._encoder = layers.Segment(layers, name="encoder")
+            self._encoder = layers.Segment(self.encoder_network(params), name="encoder")
 
             code_ae = self._encoder.apply(synthetic, training=training)
 

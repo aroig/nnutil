@@ -8,13 +8,15 @@ import numpy as np
 from .. import model
 from .tensorboard_profiler_hook import TensorboardProfilerHook
 
-import nnutil as nn
-
 class Experiment:
-    def __init__(self, path, model, eval_dataset=None, train_dataset=None, resume=False, label_key="label", seed=None):
+    def __init__(self, path, model, eval_dataset=None, train_dataset=None,
+                 hyperparameters=None, resume=False, label_key="label", seed=None):
+        if hyperparameters is None:
+            hyperparameters = {}
         self._model = model
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
+        self._hyperparameters = hyperparameters
         self._label_key = label_key
         self._seed = seed
 
@@ -74,13 +76,10 @@ class Experiment:
             keep_checkpoint_max=10,
             log_step_count_steps=self._summary_steps)
 
-        # hyperparameters
-        params = {}
-
         estimator = tf.estimator.Estimator(model_fn=model_fn,
                                            model_dir=self.path,
                                            config=config,
-                                           params=params)
+                                           params=self._hyperparameters)
 
         return estimator
 
