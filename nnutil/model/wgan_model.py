@@ -29,14 +29,6 @@ class WGANModel(BaseModel):
                                     name='image')
         }
 
-    def autoencoder_summaries(self, image, code, synthetic):
-        if self._autoencoder:
-            tf.summary.image('sample', tf.concat([tf.expand_dims(image[0,...], 0),
-                                                  tf.expand_dims(synthetic[0,...], 0)], axis=2))
-
-        else:
-            tf.summary.image('sample', tf.expand_dims(synthetic[0,...], 0))
-
     def layer_summaries(self, segment, gradients):
         nn.summary.layers(segment.name, segment.layers, gradients)
 
@@ -54,12 +46,26 @@ class WGANModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        self.layer_summaries(self._generator, gradients)
-        self.layer_summaries(self._critic, gradients)
-        if self._autoencoder:
-            self.layer_summaries(self._encoder, gradients)
+        nn.summary.layers("layer_summary_{}".format(self._generator.name),
+                          self._generator.layers,
+                          gradients)
 
-        self.autoencoder_summaries(image, code, synthetic)
+        nn.summary.layers("layer_summary_{}".format(self._critic.name),
+                          self._critic.layers,
+                          gradients)
+
+        if self._encoder is not None:
+            nn.summary.layers("layer_summary_{}".format(self._encoder.name),
+                              self._encoder.layers,
+                              gradients)
+
+        if self._encoder is not None:
+            tf.summary.image('sample',
+                             tf.concat([tf.expand_dims(image[0,...], 0),
+                                        tf.expand_dims(synthetic[0,...], 0)], axis=2))
+
+        else:
+            tf.summary.image('sample', tf.expand_dims(synthetic[0,...], 0))
 
         training_hooks = []
 

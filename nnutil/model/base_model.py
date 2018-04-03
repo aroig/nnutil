@@ -16,6 +16,3 @@ class BaseModel:
             else:
                 x = l.apply(x)
         return x
-
-    def layer_gradients(self, f, layers=[]):
-        return [tf.gradient(f, v) for l in layers for v in l.variables]

@@ -27,13 +27,6 @@ class AutoencoderModel(BaseModel):
                                     name='image')
         }
 
-    def autoencoder_summaries(self, image, code, synthetic):
-        tf.summary.image('sample', tf.concat([tf.expand_dims(image[0,...], 0),
-                                              tf.expand_dims(synthetic[0,...], 0)], axis=2))
-
-    def layer_summaries(self, segment, gradients):
-        nn.summary.layers(segment.name, segment.layers, gradients)
-
     def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
 
@@ -49,9 +42,17 @@ class AutoencoderModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        self.layer_summaries(self._encoder, gradients)
-        self.layer_summaries(self._decoder, gradients)
-        self.autoencoder_summaries(image, code, synthetic)
+        nn.summary.layers("layer_summary_{}".format(self._encoder.name),
+                          self._encoder.layers,
+                          gradients)
+
+        nn.summary.layers("layer_summary_{}".format(self._decoder.name),
+                          self._decoder.layers,
+                          gradients)
+
+        tf.summary.image('sample',
+                         tf.concat([tf.expand_dims(image[0,...], 0),
+                                    tf.expand_dims(synthetic[0,...], 0)], axis=2))
 
         training_hooks = []
 
@@ -69,8 +70,6 @@ class AutoencoderModel(BaseModel):
         extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(extra_ops):
             loss = tf.identity(loss)
-
-        self.autoencoder_summaries(image, code, synthetic)
 
         evaluation_hooks.append(
             nn.train.EvalSummarySaverHook(

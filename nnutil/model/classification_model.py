@@ -20,10 +20,6 @@ class ClassificationModel(BaseModel):
         self._learning_rate = 0.001
 
     @property
-    def name(self):
-        return self._name
-
-    @property
     def shape(self):
         return self._shape
 
@@ -34,15 +30,6 @@ class ClassificationModel(BaseModel):
     @property
     def layers(self):
         return self._classifier.layers
-
-    @property
-    def layer_sizes(self):
-        sizes = []
-        for l in self._classifier.layers:
-            for v in l.variables:
-                sizes.append(int(np.prod(v.shape)))
-
-        return sizes
 
     def features_placeholder(self, batch_size=1):
         return {
