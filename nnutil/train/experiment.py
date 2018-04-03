@@ -5,6 +5,9 @@ from datetime import datetime
 import tensorflow as tf
 import numpy as np
 
+from .. import model
+from .tensorboard_profiler_hook import TensorboardProfilerHook
+
 import nnutil as nn
 
 class Experiment:
@@ -51,22 +54,9 @@ class Experiment:
     def hooks(self, mode):
         hooks = []
 
-        # log_tensors = {
-            # "loss": "loss",
-            # "confusion": "confusion"
-            # "probabilities": "probabilities"
-        # }
-
-        # hooks.append(
-        #     tf.train.LoggingTensorHook(
-        #         every_n_secs=self._log_secs,
-        #         tensors=log_tensors))
-
-        # Save summaries in eval mode too.
-
         if mode == 'prof':
             hooks.append(
-                nn.train.TensorboardProfilerHook(
+                TensorboardProfilerHook(
                     save_secs=self._log_secs,
                     output_dir=self.path)
             )
@@ -231,7 +221,7 @@ class Experiment:
                     config = estimator._session_config),
                 hooks = []) as sess:
 
-                writer = nn.model.NLModelWriter(model, sess)
+                writer = model.NLModelWriter(model, sess)
 
                 net_path = os.path.join(export_path, "{}.net".format(self._name))
                 wgt_path = os.path.join(export_path, "{}.wgt".format(self._name))
