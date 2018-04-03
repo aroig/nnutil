@@ -21,10 +21,10 @@ def classification(name, confusion, label_names):
         tf.summary.image('confusion', confusion_img)
         tf.summary.scalar('accuracy', accuracy)
 
-    with tf.name_scope('{}_class'.format(name)):
+    with tf.name_scope('{}_freq'.format(name)):
         for i, lb in enumerate(label_names):
             tf.summary.scalar(lb, tf.reduce_mean(label_rel[i]))
 
-    with tf.name_scope('{}_freq'.format(name)):
+    with tf.name_scope('{}_class'.format(name)):
         for i, lb in enumerate(label_names):
             tf.summary.scalar(lb, tf.reduce_mean(class_accuracy[i]))
