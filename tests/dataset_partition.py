@@ -12,6 +12,7 @@ class Dataset_Partition(unittest.TestCase):
         self._dataB = [x.encode() for x in [ 'c', 'f', 'c', 'f', 'c', 'f' ]]
 
     def test_dataset_partition(self):
+        tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensor_slices(tf.constant(self._data, dtype=tf.string))
         ds = tf.data.Dataset.repeat(ds)
 

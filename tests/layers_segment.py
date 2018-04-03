@@ -8,6 +8,7 @@ import nnutil as nn
 
 class Layer_Segment(unittest.TestCase):
     def test_layer_segment(self):
+        tf.set_random_seed(42)
         with tf.Session() as sess:
             dense = tf.layers.Dense(units=2)
             layer = nn.layers.Segment(layers=[dense])
@@ -24,6 +25,7 @@ class Layer_Segment(unittest.TestCase):
         np.testing.assert_array_almost_equal(data[0], data[1], decimal=5)
 
     def test_layer_segment_residual(self):
+        tf.set_random_seed(42)
         with tf.Session() as sess:
             dense = tf.layers.Dense(units=2)
             layer = nn.layers.Segment(layers=[dense], residual=True)
@@ -40,6 +42,7 @@ class Layer_Segment(unittest.TestCase):
         np.testing.assert_array_almost_equal(data[0], data[1], decimal=5)
 
     def test_layer_segment_dropout(self):
+        tf.set_random_seed(42)
         with tf.Session() as sess:
             dropout = tf.layers.Dropout()
             layer = nn.layers.Segment(layers=[dropout])

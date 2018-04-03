@@ -4,11 +4,12 @@ import tensorflow as tf
 import numpy as np
 
 class TextFiles(tf.data.Dataset):
-    def __init__(self, directory, glob):
+    def __init__(self, directory, glob, shuffle=True):
         self._directory = directory
         self._glob = glob
 
-        dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob))
+        dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob),
+                                             shuffle=shuffle)
         dataset = dataset.map(self.load_content)
 
         self._dataset = dataset
@@ -38,6 +39,5 @@ class TextFiles(tf.data.Dataset):
 
         return feature
 
-def text_files(directory, glob='*'):
-    return TextFiles(directory, glob=glob)
-
+def text_files(directory, glob='*', shuffle=True):
+    return TextFiles(directory, glob=glob, shuffle=shuffle)

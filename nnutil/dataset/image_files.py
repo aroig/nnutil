@@ -4,13 +4,14 @@ import tensorflow as tf
 import numpy as np
 
 class ImageFiles(tf.data.Dataset):
-    def __init__(self, directory, glob='*', shape=None):
+    def __init__(self, directory, glob='*', shape=None, shuffle=True):
         """shape: (height, width, channels)"""
         self._directory = directory
         self._shape = shape
         self._glob = glob
 
-        dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob))
+        dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob),
+                                             shuffle=shuffle)
         dataset = dataset.map(self.load_image)
 
         self._dataset = dataset
@@ -61,5 +62,5 @@ class ImageFiles(tf.data.Dataset):
 
         return feature
 
-def image_files(directory, glob='*', shape=None):
-    return ImageFiles(directory, glob=glob, shape=shape)
+def image_files(directory, glob='*', shape=None, shuffle=True):
+    return ImageFiles(directory, glob=glob, shape=shape, shuffle=shuffle)

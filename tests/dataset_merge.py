@@ -8,6 +8,8 @@ import nnutil as nl
 
 class Dataset_Merge(unittest.TestCase):
     def test_dataset_merge(self):
+        tf.set_random_seed(42)
+
         ds1 = tf.data.Dataset.from_tensors({'a': tf.constant(1, dtype=tf.int32)})
 
         ds2 = tf.data.Dataset.from_tensors({

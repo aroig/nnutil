@@ -12,6 +12,7 @@ class Dataset_Interleave(unittest.TestCase):
         self._datasets = [tf.data.Dataset.from_tensor_slices(tf.constant([10*i, 10*i+1], dtype=tf.int32)) for i in range(0, 4)]
 
     def test_dataset_interleave(self):
+        tf.set_random_seed(42)
         dataset = nl.dataset.interleave(self._datasets)
         dataset = dataset.batch(len(self._data))
 
@@ -25,6 +26,7 @@ class Dataset_Interleave(unittest.TestCase):
         np.testing.assert_array_equal(data, np.array(self._data))
 
     def test_dataset_interleave_zipped(self):
+        tf.set_random_seed(42)
         dataset = nl.dataset.interleave([tf.data.Dataset.zip((self._datasets[0], self._datasets[1])),
                                          tf.data.Dataset.zip((self._datasets[2], self._datasets[3]))])
         dataset = dataset.batch(int(len(self._data) / 2))

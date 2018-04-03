@@ -8,6 +8,8 @@ import nnutil as nl
 
 class Dataset_Labelled(unittest.TestCase):
     def test_dataset_labelled(self):
+        tf.set_random_seed(42)
+
         ds1 = tf.data.Dataset.from_tensor_slices({"value": tf.constant([1, 2, 3], dtype=tf.int32)})
 
         ds2 = tf.data.Dataset.from_tensor_slices({"value": tf.constant([10, 20, 30], dtype=tf.int32)})

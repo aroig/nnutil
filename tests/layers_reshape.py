@@ -8,6 +8,7 @@ import nnutil as nn
 
 class Layer_Reshape(unittest.TestCase):
     def test_layer_reshape(self):
+        tf.set_random_seed(42)
         with tf.Session() as sess:
             layer = nn.layers.Reshape(shape=(2, 2))
             x = tf.constant([[1, 2, 3, 4]], dtype=tf.float32)

@@ -8,6 +8,7 @@ import nnutil as nl
 
 class Dataset_ParseJSON(unittest.TestCase):
     def test_dataset_parse_json_private(self):
+        tf.set_random_seed(42)
         raw = '{"a": {"b": 1}, "c": 3}'
         ds = nl.dataset.parse_json(tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string)),
                                    input_shapes={"a": { "b": () }, "c": ()},
@@ -22,6 +23,7 @@ class Dataset_ParseJSON(unittest.TestCase):
         np.testing.assert_array_equal(np.array(3), flat[1])
 
     def test_dataset_parse_json_parse_private_flatten_lists(self):
+        tf.set_random_seed(42)
         raw = '{"a": [{"b": 1}, {"b": 2}], "c": 3}'
         ds = nl.dataset.parse_json(tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string)),
                                    input_shapes={"a": { "b": () }, "c": ()},
@@ -32,6 +34,7 @@ class Dataset_ParseJSON(unittest.TestCase):
         np.testing.assert_array_equal(np.array([3, 3]), flat[1])
 
     def test_dataset_parse_json_1(self):
+        tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensor_slices(tf.constant(['{"a": 1, "b": 2}'], dtype=tf.string))
         ds = nl.dataset.parse_json(ds,
                                    input_shapes={"a": (1,), "b": (1,)},
@@ -47,6 +50,7 @@ class Dataset_ParseJSON(unittest.TestCase):
         np.testing.assert_array_equal(np.array([2]), data[1])
 
     def test_dataset_parse_json_2(self):
+        tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensor_slices(tf.constant(['{"a": [[1, 1], [2, 2]], "b": 5}'], dtype=tf.string))
         ds = nl.dataset.parse_json(ds,
                                    input_shapes={"a": (2,2), "b": (1,)},
@@ -62,6 +66,7 @@ class Dataset_ParseJSON(unittest.TestCase):
         np.testing.assert_array_equal(np.array([5.0]), data[1])
 
     def test_dataset_parse_json_3(self):
+        tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensor_slices(
             tf.constant(['{"a": [{ "b": 1 }, { "b": 2 }], "c": 3}'], dtype=tf.string))
         ds = nl.dataset.parse_json(ds,

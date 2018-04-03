@@ -8,6 +8,7 @@ import nnutil as nl
 
 class Dataset_Random(unittest.TestCase):
     def test_dataset_random(self):
+        tf.set_random_seed(42)
         ds = nl.dataset.random(shape=(2, 3))
 
         with tf.Session() as sess:
