@@ -2,8 +2,10 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import tensorboard as tb
-import nnutil as nn
+
+from .. import summary
+from .. import layers
+from .. import train
 
 from .base_model import BaseModel
 
@@ -62,11 +64,11 @@ class ClassificationModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        nn.summary.layers("layer_summary_{}".format(self._classifier.name),
+        summary.layers("layer_summary_{}".format(self._classifier.name),
                           self._classifier.layers,
                           gradients)
 
-        nn.summary.classification("classification_summary", confusion_avg, self._labels)
+        summary.classification("classification_summary", confusion_avg, self._labels)
 
         training_hooks = []
 
@@ -90,10 +92,10 @@ class ClassificationModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             loss = tf.identity(loss)
 
-        nn.summary.classification("classification_summary", confusion_avg, self._labels)
+        summary.classification("classification_summary", confusion_avg, self._labels)
 
         evaluation_hooks.append(
-            nn.train.EvalSummarySaverHook(
+            train.EvalSummarySaverHook(
                 output_dir=os.path.join(config.model_dir, "eval"),
                 summary_op=tf.summary.merge_all()
             )
@@ -138,7 +140,7 @@ class ClassificationModel(BaseModel):
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
         layers = self.classifier_network(params)
-        self._classifier = nn.layers.Segment(layers, name="classifier")
+        self._classifier = layers.Segment(layers, name="classifier")
         logits = self._classifier.apply(image, training=training)
 
         with tf.name_scope("prediction"):
@@ -158,9 +160,9 @@ class ClassificationModel(BaseModel):
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
-            nn.summary.activation_map("activation_summary", logits, image)
+            summary.activation_map("activation_summary", logits, image)
             return self.training_estimator_spec(loss, confusion, params, config)
 
         else:
-            nn.summary.pr_curve("prcurve", probabilities, labels, label_names=self._labels)
+            summary.pr_curve("prcurve", probabilities, labels, label_names=self._labels)
             return self.evaluation_estimator_spec(loss, confusion, params, config)

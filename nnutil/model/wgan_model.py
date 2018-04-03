@@ -2,7 +2,10 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nnutil as nn
+
+from .. import layers
+from .. import summary
+from .. import train
 
 from .base_model import BaseModel
 
@@ -30,7 +33,7 @@ class WGANModel(BaseModel):
         }
 
     def layer_summaries(self, segment, gradients):
-        nn.summary.layers(segment.name, segment.layers, gradients)
+        summary.layers(segment.name, segment.layers, gradients)
 
     def training_estimator_spec(self, loss, image, code, synthetic, params, config):
         step = tf.train.get_global_step()
@@ -46,18 +49,18 @@ class WGANModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        nn.summary.layers("layer_summary_{}".format(self._generator.name),
-                          self._generator.layers,
-                          gradients)
+        summary.layers("layer_summary_{}".format(self._generator.name),
+                       self._generator.layers,
+                       gradients)
 
-        nn.summary.layers("layer_summary_{}".format(self._critic.name),
-                          self._critic.layers,
-                          gradients)
+        summary.layers("layer_summary_{}".format(self._critic.name),
+                       self._critic.layers,
+                       gradients)
 
         if self._encoder is not None:
-            nn.summary.layers("layer_summary_{}".format(self._encoder.name),
-                              self._encoder.layers,
-                              gradients)
+            summary.layers("layer_summary_{}".format(self._encoder.name),
+                           self._encoder.layers,
+                           gradients)
 
         if self._encoder is not None:
             tf.summary.image('sample',
@@ -87,7 +90,7 @@ class WGANModel(BaseModel):
         self.autoencoder_summaries(image, code, synthetic)
 
         evaluation_hooks.append(
-            nn.train.EvalSummarySaverHook(
+            train.EvalSummarySaverHook(
                 output_dir=os.path.join(config.model_dir, "eval"),
                 summary_op=tf.summary.merge_all()
             )
@@ -126,7 +129,7 @@ class WGANModel(BaseModel):
 
         # Generator
         layers = self.generative_network(params)
-        self._generator = nn.layers.Segment(layers, name="generator")
+        self._generator = layers.Segment(layers, name="generator")
 
         code = tf.random_uniform(shape=(batch_size,) + self._code_shape,
                                  minval=-1., maxval=1., dtype=tf.float32)
@@ -139,7 +142,7 @@ class WGANModel(BaseModel):
 
         # Critic
         layers = self.critic_network(params)
-        self._critic = nn.layers.Segment(layers, name="critic")
+        self._critic = layers.Segment(layers, name="critic")
 
         f_synth = self._critic.apply(synthetic, training=training)
         f_synth_ng = self._critic.apply(synthetic_ng, training=training)
@@ -151,7 +154,7 @@ class WGANModel(BaseModel):
         # Autoencoder
         if self._autoencoder:
             layers = self.encoder_network(params)
-            self._encoder = nn.layers.Segment(layers, name="encoder")
+            self._encoder = layers.Segment(layers, name="encoder")
 
             code_ae = self._encoder.apply(synthetic, training=training)
 

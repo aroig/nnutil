@@ -2,7 +2,10 @@ import os
 
 import numpy as np
 import tensorflow as tf
-import nnutil as nn
+
+from .. import summary
+from .. import layers
+from .. import train
 
 from .base_model import BaseModel
 
@@ -42,13 +45,13 @@ class AutoencoderModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        nn.summary.layers("layer_summary_{}".format(self._encoder.name),
-                          self._encoder.layers,
-                          gradients)
+        summary.layers("layer_summary_{}".format(self._encoder.name),
+                       self._encoder.layers,
+                       gradients)
 
-        nn.summary.layers("layer_summary_{}".format(self._decoder.name),
-                          self._decoder.layers,
-                          gradients)
+        summary.layers("layer_summary_{}".format(self._decoder.name),
+                       self._decoder.layers,
+                       gradients)
 
         tf.summary.image('sample',
                          tf.concat([tf.expand_dims(image[0,...], 0),
@@ -72,7 +75,7 @@ class AutoencoderModel(BaseModel):
             loss = tf.identity(loss)
 
         evaluation_hooks.append(
-            nn.train.EvalSummarySaverHook(
+            train.EvalSummarySaverHook(
                 output_dir=os.path.join(config.model_dir, "eval"),
                 summary_op=tf.summary.merge_all()
             )
@@ -106,10 +109,10 @@ class AutoencoderModel(BaseModel):
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
         layers = self.decoder_network(params)
-        self._decoder = nn.layers.Segment(layers, name="decoder")
+        self._decoder = layers.Segment(layers, name="decoder")
 
         layers=self.encoder_network(params)
-        self._encoder = nn.layers.Segment(layers, name="encoder")
+        self._encoder = layers.Segment(layers, name="encoder")
 
         code = self._encoder.apply(image, training=training)
         logits = self._decoder.apply(code, training=training)
