@@ -19,8 +19,6 @@ class ClassificationModel(BaseModel):
         self._nlabels = len(self._labels)
         self._classifier = None
 
-        self._learning_rate = 0.001
-
     @property
     def shape(self):
         return self._shape
