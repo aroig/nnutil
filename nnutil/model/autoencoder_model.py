@@ -127,6 +127,8 @@ class AutoencoderModel(BaseModel):
 
         # loss = loss_xentropy
         loss = loss_l2
+        loss += sum([l for l in self._encoder.losses])
+        loss += sum([l for l in self._decoder.losses])
 
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(image, code, synthetic, params, config)

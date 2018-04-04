@@ -174,6 +174,11 @@ class WGANModel(BaseModel):
         alpha = tf.exp(-1 * tf.stop_gradient(loss_lip))
         loss = alpha * (0.2 * loss_wgan + loss_crit) + 10 * loss_lip
 
+        loss += sum([l for l in self._generator.losses])
+        loss += sum([l for l in self._classifier.losses])
+        if self._encoder:
+            loss += sum([l for l in self._encoder.losses])
+
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(image, code, synthetic, params, config)
 

@@ -157,6 +157,7 @@ class ClassificationModel(BaseModel):
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        loss += sum([l for l in self._classifier.losses])
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
