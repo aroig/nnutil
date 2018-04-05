@@ -56,13 +56,36 @@ class ClassificationModel(BaseModel):
             if (labels is not None and len(prediction.shape) == 1):
                 confusion = tf.confusion_matrix(labels, prediction, len(self.labels))
                 confusion = tf.cast(confusion, dtype=tf.float32)
+
+                confusion_mass = tf.reduce_sum(confusion)
+                confusion_rel = confusion / confusion_mass
+
                 metrics['confusion'] = confusion
+                metrics['confusion_rel'] = confusion_rel
+
+                label_freq = tf.reduce_sum(confusion, axis=-1)
+                label_rel = label_freq / confusion_mass
+
+                metrics['label_freq'] = label_freq
+                metrics['label_rel'] = label_rel
+
+                accuracy = tf.trace(confusion) / confusion_mass
+                class_accuracy = tf.diag_part(confusion) / label_freq
+
+                metrics['accuracy'] = accuracy
+                metrics['class_accuracy'] = class_accuracy
 
         return metrics
 
     def classification_summaries(self, image, labels, metrics, confusion):
+        shape = tuple(image.shape[1:])
+
         prediction = metrics['prediction']
         probs = metrics['probs']
+        confusion_rel = metrics['confusion_rel']
+        accuracy = metrics['accuracy']
+        class_accuracy = metrics['class_accuracy']
+        label_rel = metrics['label_rel']
 
         if (len(self.labels) < 20):
             mosaic = util.confusion_mosaic(image, len(self.labels), labels, prediction)
@@ -70,7 +93,16 @@ class ClassificationModel(BaseModel):
 
         summary.pr_curve("prcurve", probs, labels, label_names=self.labels)
 
-        summary.classification("classification_summary", confusion, self.labels)
+        tf.summary.image('confusion',
+                         tf.reshape(confusion_rel, shape=(1, len(self.labels), len(self.labels), 1)))
+
+        tf.summary.scalar('accuracy', accuracy)
+
+        for i, lb in enumerate(self.labels):
+            tf.summary.scalar(lb, tf.reduce_mean(label_rel[i]))
+
+        for i, lb in enumerate(self.labels):
+            tf.summary.scalar(lb, tf.reduce_mean(class_accuracy[i]))
 
     def training_estimator_spec(self, loss, image, labels, logits, params, config):
         step = tf.train.get_global_step()
