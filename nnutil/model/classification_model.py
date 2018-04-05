@@ -99,7 +99,8 @@ class ClassificationModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
-        summary.activation_map("activation_summary", logits, image)
+        if int(image.shape[-1]) in set([1, 3]):
+            summary.activation_map("activation_summary", logits, image)
 
         summary.layers("layer_summary_{}".format(self._classifier.name),
                           self._classifier.layers,
