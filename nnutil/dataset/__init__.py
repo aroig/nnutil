@@ -9,3 +9,4 @@ from .mutate import *
 from .text_files import *
 from .parse_json import *
 from .merge import *
+from .attach_image import *
