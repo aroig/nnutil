@@ -5,7 +5,9 @@ from .labelled_images import *
 from .image_files import *
 from .random import *
 from .ones import *
-from .mutate import *
+from .mutate_image import *
+from .mutate_window import *
 from .text_files import *
 from .parse_json import *
 from .merge import *
+from .attach_image import *
