@@ -32,11 +32,7 @@ class ImageFiles(tf.data.Dataset):
         return self._dataset._as_variant_tensor()
 
     def load_image(self, img_path):
-        if self._shape is not None:
-            nchannels = self._shape[2]
-        else:
-            nchannels = 0
-
+        nchannels = 0 if self._shape is None else self._shape[2]
         data = tf.read_file(img_path)
 
         # Note: This does not set a shape, as gifs produce a different rank (animated gifs).
