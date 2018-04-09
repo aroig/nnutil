@@ -19,6 +19,7 @@ from .dataset_partition import *
 from .dataset_random import *
 from .dataset_textfiles import *
 from .dataset_attach_image import *
+from .dataset_mutate_image import *
 from .layers_reshape import *
 from .layers_segment import *
 # from .layers_serialization import *
