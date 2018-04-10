@@ -10,14 +10,15 @@
 # license. See the LICENSE file for details.
 
 
-from .dataset_image_files import *
 from .dataset_interleave import *
 from .dataset_labelled import *
 from .dataset_merge import *
 from .dataset_parse_json import *
 from .dataset_partition import *
 from .dataset_random import *
+from .dataset_image_files import *
 from .dataset_text_files import *
+from .dataset_json_files import *
 from .dataset_attach_image import *
 from .dataset_mutate_image import *
 from .dataset_mutate_window import *

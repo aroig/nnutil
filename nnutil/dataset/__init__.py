@@ -9,5 +9,6 @@ from .mutate_image import *
 from .mutate_window import *
 from .text_files import *
 from .parse_json import *
+from .json_files import *
 from .merge import *
 from .attach_image import *
