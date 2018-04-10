@@ -7,12 +7,17 @@ import nnutil as nl
 
 
 class Dataset_ParseJSON(unittest.TestCase):
+
     def test_dataset_parse_json_private(self):
         tf.set_random_seed(42)
         raw = '{"a": {"b": 1}, "c": 3}'
-        ds = nl.dataset.parse_json(tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string)),
-                                   input_shapes={"a": { "b": () }, "c": ()},
-                                   input_types={"a": { "b": tf.int32 }, "c": tf.int32})
+        input_spec = {
+            "a": {"b": nl.TensorSpec((), tf.int32)},
+            "c": nl.TensorSpec((), tf.int32)
+        }
+
+        ds = tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string))
+        ds = nl.dataset.parse_json(ds, input_spec=input_spec)
 
         flat = ds.flatten_to_numpy({"a" : { "b": 1 }, "c": 3 })
         np.testing.assert_array_equal(np.array(1), flat[0])
@@ -25,9 +30,14 @@ class Dataset_ParseJSON(unittest.TestCase):
     def test_dataset_parse_json_parse_private_flatten_lists(self):
         tf.set_random_seed(42)
         raw = '{"a": [{"b": 1}, {"b": 2}], "c": 3}'
-        ds = nl.dataset.parse_json(tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string)),
-                                   input_shapes={"a": { "b": () }, "c": ()},
-                                   input_types={"a": { "b": tf.int32 }, "c": tf.int32})
+
+        input_spec = {
+            "a": {"b": nl.TensorSpec((), tf.int32)},
+            "c": nl.TensorSpec((), tf.int32)
+        }
+
+        ds = tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string))
+        ds = nl.dataset.parse_json(ds, input_spec=input_spec)
 
         flat = ds.parse_json_flatten_lists_fn(raw)
         np.testing.assert_array_equal(np.array([1, 2]), flat[0])
@@ -35,10 +45,15 @@ class Dataset_ParseJSON(unittest.TestCase):
 
     def test_dataset_parse_json_1(self):
         tf.set_random_seed(42)
-        ds = tf.data.Dataset.from_tensor_slices(tf.constant(['{"a": 1, "b": 2}'], dtype=tf.string))
-        ds = nl.dataset.parse_json(ds,
-                                   input_shapes={"a": (1,), "b": (1,)},
-                                   input_types={"a": tf.int32, "b": tf.int32})
+        raw = '{"a": 1, "b": 2}'
+
+        input_spec = {
+            "a": nl.TensorSpec((1,), tf.int32),
+            "b": nl.TensorSpec((1,), tf.int32)
+        }
+
+        ds = tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string))
+        ds = nl.dataset.parse_json(ds, input_spec=input_spec)
 
         with tf.Session() as sess:
             it = ds.make_one_shot_iterator()
@@ -51,10 +66,15 @@ class Dataset_ParseJSON(unittest.TestCase):
 
     def test_dataset_parse_json_2(self):
         tf.set_random_seed(42)
-        ds = tf.data.Dataset.from_tensor_slices(tf.constant(['{"a": [[1, 1], [2, 2]], "b": 5}'], dtype=tf.string))
-        ds = nl.dataset.parse_json(ds,
-                                   input_shapes={"a": (2,2), "b": (1,)},
-                                   input_types={"a": tf.int32, "b": tf.float32})
+        raw = '{"a": [[1, 1], [2, 2]], "b": 5}'
+
+        input_spec = {
+            "a": nl.TensorSpec((2,2), tf.int32),
+            "b": nl.TensorSpec((1,), tf.float32)
+        }
+
+        ds = tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string))
+        ds = nl.dataset.parse_json(ds, input_spec=input_spec)
 
         with tf.Session() as sess:
             it = ds.make_one_shot_iterator()
@@ -67,12 +87,16 @@ class Dataset_ParseJSON(unittest.TestCase):
 
     def test_dataset_parse_json_3(self):
         tf.set_random_seed(42)
-        ds = tf.data.Dataset.from_tensor_slices(
-            tf.constant(['{"a": [{ "b": 1 }, { "b": 2 }], "c": 3}'], dtype=tf.string))
-        ds = nl.dataset.parse_json(ds,
-                                   input_shapes={"a": { "b": () }, "c": ()},
-                                   input_types={"a": { "b": tf.int32 }, "c": tf.int32},
-                                   flatten_lists=True)
+
+        raw = '{"a": [{ "b": 1 }, { "b": 2 }], "c": 3}'
+
+        input_spec = {
+            "a": {"b": nl.TensorSpec((), tf.int32)},
+            "c": nl.TensorSpec((), tf.int32)
+        }
+
+        ds = tf.data.Dataset.from_tensor_slices(tf.constant([raw], dtype=tf.string))
+        ds = nl.dataset.parse_json(ds, input_spec=input_spec, flatten_lists=True)
 
         with tf.Session() as sess:
             it = ds.make_one_shot_iterator()

@@ -9,13 +9,14 @@ from tensorflow.python.data.util import nest
 
 
 class ParseJSON(tf.data.Dataset):
-    def __init__(self, dataset, input_shapes, input_types, flatten_lists=False):
-        self._input_shapes = input_shapes
-        self._input_types = input_types
-        self._flatten_lists = flatten_lists
+    def __init__(self, dataset, input_spec, flatten_lists=False):
+        self._flat_shapes = [spec.shape for spec in nest.flatten(input_spec)]
+        self._input_shapes = nest.pack_sequence_as(input_spec, self._flat_shapes)
 
-        self._flat_types = nest.flatten(input_types)
-        self._flat_shapes = nest.flatten_up_to(input_types, input_shapes)
+        self._flat_types = [spec.dtype for spec in nest.flatten(input_spec)]
+        self._input_types = nest.pack_sequence_as(input_spec, self._flat_types)
+
+        self._flatten_lists = flatten_lists
 
         dataset = dataset.flat_map(self.parse_json)
 
@@ -116,6 +117,5 @@ class ParseJSON(tf.data.Dataset):
             return tf.data.Dataset.from_tensors(feature)
 
 
-def parse_json(dataset, input_shapes, input_types, flatten_lists=False):
-    return ParseJSON(dataset, input_shapes, input_types, flatten_lists=flatten_lists)
-
+def parse_json(dataset, input_spec, flatten_lists=False):
+    return ParseJSON(dataset, input_spec, flatten_lists=flatten_lists)

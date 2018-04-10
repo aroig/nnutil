@@ -13,17 +13,11 @@ class JSONFiles(tf.data.Dataset):
         self._directory = directory
         self._glob = glob
 
-        flat_shapes = [spec.shape for spec in nest.flatten(input_spec)]
-        input_shapes = nest.pack_sequence_as(input_spec, flat_shapes)
-
-        flat_types = [spec.dtype for spec in nest.flatten(input_spec)]
-        input_types = nest.pack_sequence_as(input_spec, flat_types)
-
         dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob),
                                              shuffle=shuffle)
 
         dataset = dataset.map(self.load_content)
-        dataset = parse_json(dataset, input_shapes, input_types, flatten_lists=flatten_lists)
+        dataset = parse_json(dataset, input_spec, flatten_lists=flatten_lists)
 
         self._dataset = dataset
 
