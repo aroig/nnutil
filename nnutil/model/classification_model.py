@@ -98,11 +98,13 @@ class ClassificationModel(BaseModel):
 
         tf.summary.scalar('accuracy', accuracy)
 
-        for i, lb in enumerate(self.labels):
-            tf.summary.scalar(lb, tf.reduce_mean(label_rel[i]))
+        with tf.name_scope("class_freq"):
+            for i, lb in enumerate(self.labels):
+                tf.summary.scalar(lb, tf.reduce_mean(label_rel[i]))
 
-        for i, lb in enumerate(self.labels):
-            tf.summary.scalar(lb, tf.reduce_mean(class_accuracy[i]))
+        with tf.name_scope("class_accuracy"):
+            for i, lb in enumerate(self.labels):
+                tf.summary.scalar(lb, tf.reduce_mean(class_accuracy[i]))
 
     def training_estimator_spec(self, loss, image, labels, logits, params, config):
         step = tf.train.get_global_step()
