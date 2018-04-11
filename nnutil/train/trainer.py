@@ -60,7 +60,12 @@ class Trainer:
             key_fn=lambda x: x[0]['path'])
 
         # Mutate the training set
-        train_dataset = dataset.mutate(train_dataset)
+        train_dataset = dataset.mutate_image(
+            train_dataset,
+            brightness=.3,
+            contrast=[0.7, 1.4],
+            saturation=[0.7, 1.4]
+        )
 
         # Take batches
         eval_dataset = eval_dataset.batch(batch_size)
