@@ -11,13 +11,22 @@ from .. import util
 from .base_model import BaseModel
 
 class ClassificationModel(BaseModel):
-    def __init__(self, name, shape, labels):
+    def __init__(self, name, shape, labels, outfunction=None):
         super().__init__(name)
+
+        if outfunction is None:
+            outfunction = tf.nn.softmax
+
+        self._outfunction = outfunction
 
         self._shape = shape
         self._labels = labels
 
         self._classifier = None
+
+    @property
+    def outfunction(self):
+        return self._outfunction
 
     @property
     def shape(self):
@@ -31,7 +40,7 @@ class ClassificationModel(BaseModel):
     def layers(self):
         return self._classifier.layers
 
-    def features_placeholder(self, batch_size=1):
+    def features_placeholder(self, batch_size=None):
         return {
             'image': tf.placeholder(dtype=tf.float32,
                                     shape=(batch_size,) + self._shape,
@@ -87,7 +96,7 @@ class ClassificationModel(BaseModel):
         class_accuracy = metrics['class_accuracy']
         label_rel = metrics['label_rel']
 
-        if (len(self.labels) < 20) and int(shape[-1]) in set([1, 3]):
+        if (len(self.labels) < 20 and int(shape[-1]) in set([1, 3])):
             mosaic = util.confusion_mosaic(image, len(self.labels), labels, prediction)
             tf.summary.image("confusion_mosaic", mosaic)
 
@@ -188,23 +197,25 @@ class ClassificationModel(BaseModel):
     def prediction_estimator_spec(self, logits, params, config):
         prediction = tf.argmax(input=logits, axis=1)
 
-        probs = tf.reshape(tf.nn.softmax(logits),
-                           shape=(-1, len(self.labels)),
-                           name="probabilities")
+        probs = tf.reshape(
+            self.outfunction(logits),
+            shape=(-1, len(self.labels)),
+            name="probabilities")
 
         prediction_dict = {
             "class": prediction,
-            "probs": probs
+            "probs": probs,
+            "logits": logits
         }
 
-        exports = {
+        exports_dict = {
            'class': tf.estimator.export.ClassificationOutput(scores=probs)
         }
 
         return tf.estimator.EstimatorSpec(
             mode=tf.estimator.ModeKeys.PREDICT,
             predictions=prediction_dict,
-            export_outputs=exports
+            export_outputs=exports_dict
         )
 
     def classifier_network(self, params):
