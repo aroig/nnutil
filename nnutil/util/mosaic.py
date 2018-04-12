@@ -39,11 +39,20 @@ def confusion_mosaic(image, nlabels, labels, predictions, name=None):
         name = "ConfusionMosaic"
 
     with tf.name_scope(name):
+        size = tf.shape(labels)[0]
+
+        image_ex = tf.concat([tf.zeros((1,) + tuple(image.shape[1:]), dtype=image.dtype), image], axis=0)
+
         indexes = tf.stack([
             tf.cast(labels, dtype=tf.int32),
-            tf.cast(predictions, dtype=tf.int32)
+            tf.cast(predictions, dtype=tf.int32),
+            tf.range(0, size, dtype=tf.int32)
         ], axis=-1)
-        mosaic = tf.scatter_nd(indexes, image, shape=(nlabels, nlabels) + tuple(image.shape)[1:])
+
+        unique_indexes = tf.scatter_nd(indexes, tf.range(1, size+1), shape=(nlabels, nlabels, size))
+        unique_indexes = tf.reduce_max(unique_indexes, axis=-1)
+
+        mosaic = tf.gather_nd(image_ex, tf.expand_dims(unique_indexes, axis=-1))
 
         # reshape it
         mosaic = tf.transpose(mosaic, perm=[0, 2, 1, 3, 4])
