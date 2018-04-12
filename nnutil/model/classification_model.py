@@ -212,8 +212,6 @@ class ClassificationModel(BaseModel):
 
     def model_fn(self, features, labels, mode, params, config):
         image = features['image']
-        image = tf.image.per_image_standardization(image)
-
         labels = tf.cast(features['label'], tf.int32)
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
