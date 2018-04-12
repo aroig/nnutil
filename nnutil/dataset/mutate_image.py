@@ -3,7 +3,8 @@ import numpy as np
 
 class MutateImage(tf.data.Dataset):
     def __init__(self, dataset, image_key=None,
-                 hue=None, brightness=None, contrast=None, saturation=None, seed=None):
+                 hue=None, brightness=None, contrast=None, saturation=None,
+                 hflip=False, noise=None, seed=None):
 
         if image_key is None:
             image_key = 'image'
@@ -15,6 +16,9 @@ class MutateImage(tf.data.Dataset):
         self._hue = hue
         self._contrast = self._make_multiplicative_range(contrast)
         self._saturation = self._make_multiplicative_range(saturation)
+
+        self._hflip = hflip
+        self._noise = noise
 
         self._dataset = dataset.map(self.do_mutation)
 
@@ -49,7 +53,7 @@ class MutateImage(tf.data.Dataset):
     def do_mutation(self, feature):
         image = feature[self._image_key]
 
-        if self._hue is not None:
+        if self._hue is not None and image.shape[-1] == 3:
             image = tf.image.random_hue(image,
                                         max_delta=self._hue,
                                         seed=self._seed)
@@ -71,17 +75,26 @@ class MutateImage(tf.data.Dataset):
                                                upper=self._saturation[1],
                                                seed=self._seed)
 
+        if self._hflip:
+            image = tf.image.random_flip_left_right(image)
+
+        if self._noise is not None:
+            image = image + tf.random_normal(image.shape, mean=0, stddev=self._noise)
+
         feature[self._image_key] = tf.clip_by_value(image, 0.0, 1.0)
 
         return feature
 
 
 def mutate_image(dataset, image_key=None,
-                 hue=None, brightness=None, contrast=None, saturation=None, seed=None):
+                 hue=None, brightness=None, contrast=None, saturation=None,
+                 hflip=False, noise=None, seed=None):
     return MutateImage(dataset,
                        image_key=image_key,
                        hue=hue,
                        brightness=brightness,
                        contrast=contrast,
                        saturation=saturation,
+                       hflip=hflip,
+                       noise=noise,
                        seed=seed)
