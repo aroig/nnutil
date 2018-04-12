@@ -100,8 +100,6 @@ class ClassificationModel(BaseModel):
             mosaic = util.confusion_mosaic(image, len(self.labels), labels, prediction)
             tf.summary.image("confusion_mosaic", mosaic)
 
-        summary.pr_curve("prcurve", probs, labels, label_names=self.labels)
-
         tf.summary.image('confusion',
                          tf.reshape(confusion_rel, shape=(1, len(self.labels), len(self.labels), 1)))
 
@@ -173,12 +171,14 @@ class ClassificationModel(BaseModel):
         confusion_avg, confusion_op = tf.metrics.mean_tensor(confusion)
         tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, confusion_op)
 
+        self.classification_summaries(image, labels, metrics, confusion_avg)
+
+        summary.pr_curve("prcurve", probs, labels, label_names=self.labels, streaming=True)
+
         # Make sure we run update averages on each training step
         extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(extra_ops):
             loss = tf.identity(loss)
-
-        self.classification_summaries(image, labels, metrics, confusion_avg)
 
         evaluation_hooks.append(
             train.EvalSummarySaverHook(
