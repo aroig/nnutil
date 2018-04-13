@@ -138,12 +138,12 @@ def plot_sample(dataset):
         win = PlotWindow(sess, dataset)
 
 
-def print_sample(dataset, key):
+def print_sample(dataset):
     with tf.Session() as sess:
         it = dataset.make_one_shot_iterator()
-        feature, label = it.get_next()
+        feature = it.get_next()
         while True:
-            flat = nest.flatten(self._feature)
-            flat_val = self._sess.run(flat)
-            feature = nest.pack_sequence_as(self._feature, flat_val)
-            print(feature[key])
+            flat = nest.flatten(feature)
+            flat_val = sess.run(flat)
+            np_feature = nest.pack_sequence_as(feature, flat_val)
+            print(np_feature)
