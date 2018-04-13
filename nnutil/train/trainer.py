@@ -57,7 +57,7 @@ class Trainer:
         eval_dataset, train_dataset = dataset.partition(
             self._dataset,
             dist=[self._eval_fraction, 1 - self._eval_fraction],
-            key_fn=lambda x: x[0]['path'])
+            split_field='path')
 
         # Mutate the training set
         train_dataset = dataset.mutate_image(
