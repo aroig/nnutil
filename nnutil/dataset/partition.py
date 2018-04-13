@@ -7,25 +7,34 @@ class PartitionDataset(tf.data.Dataset):
         given by dist. The partition is deterministic, and obtained by hashing the value given
         by key_fn applied to the features dict."""
 
-    def __init__(self, dataset, dist, key_fn, index):
+    def __init__(self, dataset, dist, split_field, index, salt=None):
         self._nbuckets = len(dist)
 
         ss = sum(dist)
         self._thresh_A = sum([p for i, p in enumerate(dist) if i < index ]) / ss
         self._thresh_B = sum([p for i, p in enumerate(dist) if i <= index ]) / ss
 
-        self._key_fn = key_fn
-        self._salt = ""
+        if type(split_field) == str:
+            self._key_fn = lambda x: x[split_field]
+
+        elif hasattr(split_field, "__call__"):
+            self._key_fn = split_field
+
+        else:
+            raise Exception("Cannot use split_field of type {}".format(type(split_field)))
+
+        if salt is None:
+            salt = ""
+
+        self._salt = salt
 
         dataset = tf.data.Dataset.filter(dataset, self.has_matching_bucket)
 
         self._dataset = dataset
 
 
-    def has_matching_bucket(self, *args):
-        feature = args[0]
-
-        path = self._key_fn(args)
+    def has_matching_bucket(self, feature):
+        path = self._key_fn(feature)
         salted_path = tf.string_join([path, tf.constant(self._salt, dtype=tf.string)])
 
         N = 100
@@ -57,6 +66,7 @@ class PartitionDataset(tf.data.Dataset):
         return self._dataset.output_types
 
 
-def partition(dataset, dist, key_fn):
-    return tuple([PartitionDataset(dataset, dist, key_fn, i) for i in range(0, len(dist))])
+def partition(dataset, dist, split_field, salt=None):
+    return tuple([PartitionDataset(dataset, dist, split_field, i, salt=salt)
+                  for i in range(0, len(dist))])
 

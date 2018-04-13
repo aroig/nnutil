@@ -13,10 +13,10 @@ class Dataset_Partition(unittest.TestCase):
 
     def test_dataset_partition(self):
         tf.set_random_seed(42)
-        ds = tf.data.Dataset.from_tensor_slices(tf.constant(self._data, dtype=tf.string))
+        ds = tf.data.Dataset.from_tensor_slices({'xxx': tf.constant(self._data, dtype=tf.string)})
         ds = tf.data.Dataset.repeat(ds)
 
-        dsA, dsB = nl.dataset.partition(ds, [2, 1], key_fn=lambda x: x[0])
+        dsA, dsB = nl.dataset.partition(ds, [2, 1], split_field='xxx')
         dsA = tf.data.Dataset.batch(dsA, 6)
         dsB = tf.data.Dataset.batch(dsB, 6)
 
@@ -27,7 +27,7 @@ class Dataset_Partition(unittest.TestCase):
             featureA = itA.get_next()
             featureB = itB.get_next()
 
-            dataA, dataB = sess.run([featureA, featureB])
+            dataA, dataB = sess.run([featureA['xxx'], featureB['xxx']])
 
         np.testing.assert_array_equal(dataA, np.array(self._dataA))
         np.testing.assert_array_equal(dataB, np.array(self._dataB))
