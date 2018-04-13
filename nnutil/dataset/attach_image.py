@@ -11,7 +11,7 @@ class AttachImage(tf.data.Dataset):
         self._image_key = image_key
 
         if image_path is None:
-            self._image_path_fn = lambda feature: feature["image"]
+            self._image_path_fn = lambda feature: feature["path"]
 
         elif type(image_path) == str:
             self._image_path_fn = lambda feature: feature[image_path]
