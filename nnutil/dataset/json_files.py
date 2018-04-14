@@ -11,7 +11,7 @@ from .merge import merge
 class JSONFiles(tf.data.Dataset):
     def __init__(self, directory, input_spec,
                  glob='*.json', flatten_lists=False, path_key=None, shuffle=True):
-        self._directory = directory
+        self._directory = os.path.realpath(directory)
         self._glob = glob
 
         files_dataset = tf.data.Dataset.list_files(

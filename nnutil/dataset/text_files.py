@@ -5,7 +5,7 @@ import numpy as np
 
 class TextFiles(tf.data.Dataset):
     def __init__(self, directory, glob, shuffle=True):
-        self._directory = directory
+        self._directory = os.path.realpath(directory)
         self._glob = glob
 
         dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob),

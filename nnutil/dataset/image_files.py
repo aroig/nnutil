@@ -8,7 +8,7 @@ from .attach_image import attach_image
 class ImageFiles(tf.data.Dataset):
     def __init__(self, directory, shape, glob='*', image_key=None, shuffle=True):
         """shape: (height, width, channels)"""
-        self._directory = directory
+        self._directory = os.path.realpath(directory)
         self._glob = glob
         self._shape = shape
 
