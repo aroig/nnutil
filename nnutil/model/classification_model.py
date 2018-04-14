@@ -29,8 +29,12 @@ class ClassificationModel(BaseModel):
         return self._outfunction
 
     @property
-    def shape(self):
+    def input_shape(self):
         return self._shape
+
+    @property
+    def output_shape(self):
+        return (len(self._labels),)
 
     @property
     def labels(self):
