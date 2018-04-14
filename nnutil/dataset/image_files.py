@@ -3,16 +3,26 @@ import os
 import tensorflow as tf
 import numpy as np
 
+from .attach_image import attach_image
+
 class ImageFiles(tf.data.Dataset):
-    def __init__(self, directory, glob='*', shape=None, shuffle=True):
+    def __init__(self, directory, shape, glob='*', image_key=None, shuffle=True):
         """shape: (height, width, channels)"""
         self._directory = directory
-        self._shape = shape
         self._glob = glob
+        self._shape = shape
 
-        dataset = tf.data.Dataset.list_files(os.path.join(self._directory, self._glob),
-                                             shuffle=shuffle)
-        dataset = dataset.map(self.load_image)
+        dataset = tf.data.Dataset.list_files(
+            os.path.join(self._directory, self._glob),
+            shuffle=shuffle)
+
+        dataset = dataset.map(lambda x: {'path': x})
+
+        dataset = attach_image(
+            dataset,
+            self._shape,
+            image_key=image_key,
+            image_path='path')
 
         self._dataset = dataset
 
@@ -31,32 +41,5 @@ class ImageFiles(tf.data.Dataset):
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
 
-    def load_image(self, img_path):
-        nchannels = 0 if self._shape is None else self._shape[2]
-        data = tf.read_file(img_path)
-
-        # Note: This does not set a shape, as gifs produce a different rank (animated gifs).
-        image = tf.image.decode_image(data, channels=nchannels)
-
-        # The specific image decoders, do set a shape
-        # image = tf.image.decode_bmp(data, channels=nchannels)
-        # image = tf.image.decode_jpeg(data, channels=nchannels)
-
-        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-
-        if self._shape is not None:
-            # resize_image wants a shape, but the kernel does not use it. Let's fake it.
-            image.set_shape([None, None, None])
-            image = tf.image.resize_images(image, size=self._shape[0:2])
-            image.set_shape(self._shape)
-
-        feature = {
-            'path': img_path,
-            'image': image,
-            'shape': tf.shape(image)
-        }
-
-        return feature
-
-def image_files(directory, glob='*', shape=None, shuffle=True):
-    return ImageFiles(directory, glob=glob, shape=shape, shuffle=shuffle)
+def image_files(directory, shape, glob='*', image_key=None, shuffle=True):
+    return ImageFiles(directory, shape, glob=glob, image_key=image_key, shuffle=shuffle)

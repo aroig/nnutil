@@ -40,6 +40,8 @@ class AttachImage(tf.data.Dataset):
             dataset = dataset.filter(self.is_crop_window_contained)
             dataset = dataset.map(self.crop_image)
 
+        dataset = dataset.map(self.resize_image)
+
         self._dataset = dataset
 
     @property
@@ -73,7 +75,10 @@ class AttachImage(tf.data.Dataset):
     def read_image(self, feature):
         path = self._image_path_fn(feature)
         data = tf.read_file(path)
-        nchannels = 0 if self._shape is None else self._shape[2]
+
+        nchannels = 0
+        if self._shape is not None:
+            nchannels = self._shape[2]
 
         image = tf.image.decode_image(data, channels=nchannels)
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
@@ -91,6 +96,9 @@ class AttachImage(tf.data.Dataset):
                                               crop_window[2],
                                               crop_window[3])
 
+    def resize_image(self, feature):
+        image = feature[self._image_key]
+
         if self._shape is not None:
             # resize_image wants a static shape, but the kernel does
             # not seem to use it. Let's fake it.
@@ -104,7 +112,9 @@ class AttachImage(tf.data.Dataset):
 
 
 def attach_image(dataset, shape, image_key=None, image_path=None, crop_window=None):
-    return AttachImage(dataset, shape,
-                       image_key=image_key,
-                       image_path=image_path,
-                       crop_window=crop_window)
+    return AttachImage(
+        dataset,
+        shape,
+        image_key=image_key,
+        image_path=image_path,
+        crop_window=crop_window)

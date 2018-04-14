@@ -4,7 +4,7 @@ import tensorflow as tf
 from .labelled import labelled
 from .image_files import image_files
 
-def labelled_images(path, shape, labels=None, tfrecord=False):
+def labelled_images(path, shape, glob='*', labels=None, tfrecord=False):
     path = os.path.abspath(path)
 
     if labels is None:
@@ -47,8 +47,8 @@ def labelled_images(path, shape, labels=None, tfrecord=False):
     else:
         dataset = labelled({
             lb: image_files(os.path.join(path, lb),
-                            glob='*.bmp',
-                            shape=shape) for lb in labels
+                            shape,
+                            glob=glob) for lb in labels
         }, label_key='label')
 
     return dataset
