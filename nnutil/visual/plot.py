@@ -11,9 +11,9 @@ from tensorflow.python.data.util import nest
 from .mosaic import MosaicWindow
 
 
-def plot_sample(dataset):
+def plot_sample(dataset, image_fn=None):
     with tf.Session() as sess:
-        win = MosaicWindow(sess, dataset)
+        win = MosaicWindow(sess, dataset, image_fn=image_fn)
 
 
 def print_sample(dataset):
