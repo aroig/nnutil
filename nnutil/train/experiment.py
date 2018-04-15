@@ -10,14 +10,13 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 
 class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None,
-                 hyperparameters=None, resume=False, label_key="label", seed=None):
+                 hyperparameters=None, resume=False, seed=None):
         if hyperparameters is None:
             hyperparameters = {}
         self._model = model
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
         self._hyperparameters = hyperparameters
-        self._label_key = label_key
         self._seed = seed
 
         self._log_secs = 60
@@ -84,9 +83,6 @@ class Experiment:
         return estimator
 
     def iterator(self, ds):
-        if self._label_key is not None:
-            ds = ds.map(lambda x: (x, x[self._label_key]))
-
         return ds.make_one_shot_iterator().get_next()
 
     def profile(self, steps=200):
