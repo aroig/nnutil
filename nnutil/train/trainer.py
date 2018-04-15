@@ -37,7 +37,7 @@ class Trainer:
 
         self._dataset = None
         if dataset is not None:
-            self._dataset = dataset.repeat().shuffle(buffer_size=1000)
+            self._dataset = dataset.repeat().shuffle(buffer_size=200)
 
     def __enter__(self):
         self._cluster.set_environment()
@@ -79,7 +79,6 @@ class Trainer:
                                 self._model,
                                 eval_dataset=eval_dataset,
                                 train_dataset=train_dataset,
-                                label_key="label",
                                 resume=False)
 
         # Train the model
