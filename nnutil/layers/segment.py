@@ -13,6 +13,7 @@ class Segment(tf.layers.Layer):
         self._residual = residual
         self._activation = activation
         self._layers = layers
+        self._outputs = None
 
     @property
     def layers(self):
@@ -52,11 +53,14 @@ class Segment(tf.layers.Layer):
 
     def call(self, inputs, **kwargs):
         x = inputs
+        self._outputs = [x]
+
         for l in self._layers:
             sig = [p.name for p in inspect.signature(l.call).parameters.values()]
 
             args = {k: kwargs[k] for k in set(sig) & set(kwargs.keys())}
             x = l.apply(x, **args)
+            self._outputs.append(x)
 
         if self._residual:
             output = inputs + x
@@ -73,3 +77,7 @@ class Segment(tf.layers.Layer):
         for l in self._layers:
             shape = l.compute_output_shape(shape)
         return shape
+
+    @property
+    def layer_activations(self):
+        return self._outputs
