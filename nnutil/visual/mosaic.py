@@ -12,7 +12,7 @@ from tensorflow.python.data.util import nest
 
 
 class MosaicItem:
-    def __init__(self, ax, image_fn=None, path_fn=None, label_fn=None):
+    def __init__(self, ax, image_fn=None, path_fn=None, label_fn=None, box_fn=None):
         self._feature = None
         self._ax = ax
 
@@ -24,9 +24,9 @@ class MosaicItem:
             self._image_fn = image_fn
 
         if path_fn is None:
-            self._path_fn = lambda x: np.asscalar(x['path']).decode() if 'path' in x else None
+            self._path_fn = lambda x: x['path'] if 'path' in x else None
         elif type(path_fn) == str:
-            self._path_fn = lambda x: np.asscalar(x[path_fn]).decode() if path_fn in x else None
+            self._path_fn = lambda x: x[path_fn] if path_fn in x else None
         else:
             self._path_fn = path_fn
 
@@ -37,10 +37,18 @@ class MosaicItem:
         else:
             self._label_fn = label_fn
 
-    def _draw_bbox(self, bbox):
+        if box_fn is None:
+            self._box_fn = lambda x: x['box'] if 'box' in x else None
+        elif type(box_fn) == str:
+            self._box_fn = lambda x: x[box_fn] if box_fn in x else None
+        else:
+            self._box_fn = box_fn
+
+    def _draw_bbox(self, bbox, shape):
+        # BBOX: ymin, xmin, height, width
         self._ax.add_patch(mpl.patches.Rectangle(
-            (bbox[1], bbox[0]),
-            bbox[3], bbox[2],
+            (bbox[1] * shape[1], bbox[0] * shape[0]),
+            bbox[3] * shape[1], bbox[2] * shape[0],
             fill=False,
             edgecolor='red'))
 
@@ -65,24 +73,57 @@ class MosaicItem:
 
     @property
     def path(self):
-        return self._path_fn(self._feature)
+        val = self._path_fn(self._feature)
+        return np.asscalar(val).decode() if val is not None else None
 
     @property
     def label(self):
-        return str(self._label_fn(self._feature))
+        val = self._label_fn(self._feature)
+        if val is None:
+            return None
+
+        val = np.asscalar(val)
+        if type(val) == bytes:
+            return val.decode()
+        elif type(val) == int:
+            return val
+        else:
+            return None
+
+    @property
+    def box(self):
+        return self._box_fn(self._feature)
 
     @property
     def feature(self):
         return self._feature
 
-    def draw(self):
+    def draw(self, selected=False):
         self._ax.clear()
+
+        self._ax.set_yticklabels([])
+        self._ax.set_xticklabels([])
+        for spine in self._ax.spines.values():
+            spine.set_linewidth(2)
+
         self._ax.set_aspect('equal', 'box')
-        self._ax.axis('off')
+
+        for spine in self._ax.spines.values():
+            if selected:
+                spine.set_color('red')
+                spine.set_visible(True)
+            else:
+                spine.set_visible(False)
 
         if self._feature is not None:
-            self._ax.set_title('{0}'.format(self.label))
+            if self.label is not None:
+                self._ax.set_title('{0}'.format(self.label))
+
             self._draw_image(self.image)
+
+            shape = self.image.shape
+            if self.box is not None:
+                self._draw_bbox(self.box, shape)
 
     def in_axes(self, event):
         return self._ax.in_axes(event)
@@ -95,6 +136,7 @@ class MosaicWindow:
     def __init__(self, sess, dataset, image_fn=None, label_fn=None, path_fn=None):
         self._sess = sess
         self._dataset = dataset
+        self._selected = None
 
         it = self._dataset.make_one_shot_iterator()
         self._feature = it.get_next()
@@ -110,6 +152,13 @@ class MosaicWindow:
         self._figure.canvas.mpl_connect('button_press_event', self.onclick)
 
         plt.show(self._figure)
+
+    @property
+    def selected_item(self):
+        if self._selected is not None:
+            return self._items[self._selected]
+        else:
+            return None
 
     def grid_shape(self, nbatch, aspect):
         x = np.sqrt(nbatch / aspect)
@@ -141,8 +190,8 @@ class MosaicWindow:
                     path_fn=self._path_fn))
 
     def draw(self):
-        for item in self._items:
-            item.draw()
+        for i, item in enumerate(self._items):
+            item.draw(selected=(self._selected == i))
         self._figure.canvas.draw()
 
     def next_page(self):
@@ -157,6 +206,7 @@ class MosaicWindow:
         if self._items is None:
             self.init_items(nbatch)
 
+        self._selected = None
         for i, item in enumerate(self._items):
             flat_i = tuple([x[i, ...] for x in flat_val])
             feature = nest.pack_sequence_as(self._feature, flat_i)
@@ -168,13 +218,21 @@ class MosaicWindow:
         if event.key == 'pagedown':
             print("pagedown")
             self.next_page()
-
-    def onclick(self, event):
-        for item in self._items:
-            if item.in_axes(event):
+        elif event.key == 'v':
+            item = self.selected_item
+            if item is not None:
                 path = item.path
                 print("path: %s" % path)
                 if platform.system() == 'Windows':
                     os.startfile(path)
                 else:
                     subprocess.run(['xdg-open', path])
+
+    def onclick(self, event):
+        for i, item in enumerate(self._items):
+            if item.in_axes(event):
+                self._selected = i
+                self.draw()
+                print("selection: {}".format(i))
+                return
+        self._selected = None
