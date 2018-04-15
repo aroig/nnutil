@@ -8,45 +8,23 @@ class Mobilenet(tf.layers.Layer):
         super(Mobilenet, self).__init__(**kwargs)
         self._path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   'mobilenet_v1_1.0_224_frozen.pb')
+
+        tpl = "MobilenetV1/MobilenetV1/{}_pointwise/Relu6"
         self._layer_spec = [
-            TensorSpec((112, 112, 64), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_1_pointwise/Relu6"),
-
-            TensorSpec((56, 56, 128), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_2_pointwise/Relu6"),
-
-            TensorSpec((56, 56, 128), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_3_pointwise/Relu6"),
-
-            TensorSpec((28, 28, 256), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_4_pointwise/Relu6"),
-
-            TensorSpec((28, 28, 256), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_5_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_6_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_7_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_8_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_9_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_10_pointwise/Relu6"),
-
-            TensorSpec((14, 14, 512), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_11_pointwise/Relu6"),
-
-            TensorSpec((7, 7, 1024), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_12_pointwise/Relu6"),
-
-            TensorSpec((7, 7, 1024), tf.float32,
-                       name="MobilenetV1/MobilenetV1/Conv2d_13_pointwise/Relu6")
+            TensorSpec((224, 224, 3), tf.float32, name='input'),
+            TensorSpec((112, 112, 64), tf.float32, name=tpl.format("Conv2d_1")),
+            TensorSpec((56, 56, 128), tf.float32, name=tpl.format("Conv2d_2")),
+            TensorSpec((56, 56, 128), tf.float32, name=tpl.format("Conv2d_3")),
+            TensorSpec((28, 28, 256), tf.float32, name=tpl.format("Conv2d_4")),
+            TensorSpec((28, 28, 256), tf.float32, name=tpl.format("Conv2d_5")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_6")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_7")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_8")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_9")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_10")),
+            TensorSpec((14, 14, 512), tf.float32, name=tpl.format("Conv2d_11")),
+            TensorSpec((7, 7, 1024), tf.float32, name=tpl.format("Conv2d_12")),
+            TensorSpec((7, 7, 1024), tf.float32, name=tpl.format("Conv2d_13"))
         ]
 
         if layer is None:
@@ -90,3 +68,7 @@ class Mobilenet(tf.layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return (input_shape[0],) + tuple(self._layer_spec[self._output_layer].shape)
+
+    @property
+    def layer_activations(self):
+        return self._outputs
