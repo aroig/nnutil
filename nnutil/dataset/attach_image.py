@@ -67,8 +67,8 @@ class AttachImage(tf.data.Dataset):
 
         C0 = tf.less_equal(zero, crop_window[1])
         C1 = tf.less_equal(zero, crop_window[0])
-        C2 = tf.less(crop_window[0] + crop_window[2], image_shape[0])
-        C3 = tf.less(crop_window[1] + crop_window[3], image_shape[1])
+        C2 = tf.less_equal(crop_window[0] + crop_window[2], image_shape[0])
+        C3 = tf.less_equal(crop_window[1] + crop_window[3], image_shape[1])
 
         return tf.logical_and(tf.logical_and(C0, C1), tf.logical_and(C2, C3))
 
@@ -96,6 +96,9 @@ class AttachImage(tf.data.Dataset):
                                               crop_window[2],
                                               crop_window[3])
 
+        feature[self._image_key] = image
+        return feature
+
     def resize_image(self, feature):
         image = feature[self._image_key]
 
@@ -107,7 +110,6 @@ class AttachImage(tf.data.Dataset):
             image.set_shape(self._shape)
 
         feature[self._image_key] = image
-
         return feature
 
 

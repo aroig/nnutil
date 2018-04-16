@@ -13,19 +13,15 @@ class JSONFiles(tf.data.Dataset):
                  glob='*.json', flatten_lists=False, path_key=None, shuffle=True):
         self._directory = os.path.realpath(directory)
         self._glob = glob
+        self._path_key = path_key
+        self._flatten_lists = flatten_lists
+        self._input_spec = input_spec
 
         files_dataset = tf.data.Dataset.list_files(
             os.path.join(self._directory, self._glob),
             shuffle=shuffle)
 
-        dataset = files_dataset.map(self.load_content)
-        dataset = parse_json(dataset, input_spec, flatten_lists=flatten_lists)
-
-        self._path_key = path_key
-
-        if self._path_key is not None:
-            dataset = tf.data.Dataset.zip((dataset, files_dataset)).map(self.attach_path)
-
+        dataset = files_dataset.flat_map(self.load_content)
         self._dataset = dataset
 
     @property
@@ -44,8 +40,14 @@ class JSONFiles(tf.data.Dataset):
         return self._dataset._as_variant_tensor()
 
     def load_content(self, path):
-        content = tf.read_file(path)
-        return content
+        content = tf.data.Dataset.from_tensors(tf.read_file(path))
+        ds = parse_json(content, self._input_spec, flatten_lists=self._flatten_lists)
+
+        if self._path_key is not None:
+            ds_path = tf.data.Dataset.from_tensors({self._path_key: path}).repeat()
+            ds = merge([ds, ds_path])
+
+        return ds
 
     def attach_path(self, feature, path):
         feature[self._path_key] = path
