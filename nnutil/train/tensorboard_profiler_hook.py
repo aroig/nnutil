@@ -21,12 +21,4 @@ class TensorboardProfilerHook(tf.train.ProfilerHook):
             self._summary_writer.add_run_metadata(run_values.run_metadata,
                                                   's{}'.format(global_step))
 
-            # Generate chrome trace
-            tl = timeline.Timeline(run_values.run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format()
-            if os.path.exists(self._output_dir):
-                path = os.path.join(self._output_dir, 'timeline-{}.json')
-                with open(path, 'w') as f:
-                    f.write(ctf)
-
         super().after_run(run_context, run_values)

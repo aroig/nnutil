@@ -107,7 +107,7 @@ class Experiment:
         results = estimator.evaluate(input_fn=input_fn, hooks=hooks)
         return results
 
-    def train_and_evaluate(self, steps=2000):
+    def train_and_evaluate(self, steps=2000, profiling=False):
 
         train_dataset = self._train_dataset
         def train_input_fn():
@@ -119,7 +119,7 @@ class Experiment:
 
         estimator = self.estimator('train')
         train_hooks = self.hooks('train')
-        evaluation_hooks = self.hooks('eval')
+        evaluation_hooks = self.hooks('eval', profiling=profiling)
 
         tf.estimator.train_and_evaluate(
             estimator,
