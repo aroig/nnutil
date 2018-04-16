@@ -45,10 +45,12 @@ class MosaicItem:
             self._box_fn = box_fn
 
     def _draw_bbox(self, bbox, shape):
-        # BBOX: ymin, xmin, height, width
+        # bbox: ymin, xmin, height, width
+        # shape: height, width
         self._ax.add_patch(mpl.patches.Rectangle(
             (bbox[1] * shape[1], bbox[0] * shape[0]),
-            bbox[3] * shape[1], bbox[2] * shape[0],
+             bbox[3] * shape[1],
+             bbox[2] * shape[0],
             fill=False,
             edgecolor='red'))
 
@@ -101,6 +103,7 @@ class MosaicItem:
     def draw(self, selected=False):
         self._ax.clear()
 
+        self._ax.invert_yaxis()
         self._ax.set_yticklabels([])
         self._ax.set_xticklabels([])
         for spine in self._ax.spines.values():
@@ -133,7 +136,7 @@ class MosaicItem:
 
 
 class MosaicWindow:
-    def __init__(self, sess, dataset, image_fn=None, label_fn=None, path_fn=None):
+    def __init__(self, sess, dataset, image_fn=None, label_fn=None, path_fn=None, box_fn=None):
         self._sess = sess
         self._dataset = dataset
         self._selected = None
@@ -144,6 +147,7 @@ class MosaicWindow:
         self._image_fn = image_fn
         self._label_fn = label_fn
         self._path_fn = path_fn
+        self._box_fn = box_fn
 
         self._items = None
         self.next_page()
@@ -162,32 +166,34 @@ class MosaicWindow:
 
     def grid_shape(self, nbatch, aspect):
         x = np.sqrt(nbatch / aspect)
-        gridh = int(np.floor(x))
-        gridw = int(np.ceil(aspect * x))
-
-        if gridh * gridw <= nbatch:
-            return gridh, gridw
-        else:
-            return gridh+1, gridw
+        gridh = int(np.ceil(x))
+        gridw = int(np.ceil(nbatch / gridh))
+        return gridh, gridw
 
     def init_items(self, nbatch):
         self._nbatch = nbatch
 
         # Prepare figure
         gridh, gridw = self.grid_shape(self._nbatch, 16/9)
-        fig, ax_array = plt.subplots(gridh, gridw, squeeze=True)
+        fig, ax_array = plt.subplots(gridh, gridw, squeeze=False)
 
         self._figure = fig
         self._ax_array = ax_array
 
         self._items = []
+        n = 0
         for row in self._ax_array:
             for ax in row:
-                self._items.append(MosaicItem(
-                    ax,
-                    image_fn=self._image_fn,
-                    label_fn=self._label_fn,
-                    path_fn=self._path_fn))
+                if n < self._nbatch:
+                   self._items.append(MosaicItem(
+                        ax,
+                        image_fn=self._image_fn,
+                        label_fn=self._label_fn,
+                        path_fn=self._path_fn,
+                        box_fn=self._box_fn))
+                   n += 1
+                else:
+                    ax.axis('off')
 
     def draw(self):
         for i, item in enumerate(self._items):
@@ -236,3 +242,4 @@ class MosaicWindow:
                 print("selection: {}".format(i))
                 return
         self._selected = None
+        self.draw()
