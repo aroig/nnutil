@@ -19,6 +19,7 @@ class Experiment:
         self._hyperparameters = hyperparameters
         self._seed = seed
 
+        self._profile_secs = 60
         self._log_secs = 60
         self._checkpoint_secs = 60
         self._summary_steps = 10
@@ -55,7 +56,7 @@ class Experiment:
     def hooks(self, mode):
         hooks = []
 
-        if mode == 'prof':
+        if self._profile_secs is not None:
             hooks.append(
                 TensorboardProfilerHook(
                     save_secs=self._log_secs,
@@ -84,16 +85,6 @@ class Experiment:
 
     def iterator(self, ds):
         return ds.make_one_shot_iterator().get_next()
-
-    def profile(self, steps=200):
-        train_dataset = self._train_dataset
-        def input_fn():
-           return  self.iterator(train_dataset)
-
-        estimator = self.estimator('prof')
-        hooks = self.hooks('prof')
-
-        estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
     def train(self, steps=2000):
         train_dataset = self._train_dataset
