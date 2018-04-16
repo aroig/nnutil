@@ -53,10 +53,10 @@ class Experiment:
     def model(self):
         return self._model
 
-    def hooks(self, mode):
+    def hooks(self, mode, profiling=False):
         hooks = []
 
-        if self._profile_secs is not None:
+        if profiling and self._profile_secs is not None:
             hooks.append(
                 TensorboardProfilerHook(
                     save_secs=self._log_secs,
@@ -86,13 +86,13 @@ class Experiment:
     def iterator(self, ds):
         return ds.make_one_shot_iterator().get_next()
 
-    def train(self, steps=2000):
+    def train(self, steps=2000, profiling=False):
         train_dataset = self._train_dataset
         def input_fn():
            return self.iterator(train_dataset)
 
         estimator = self.estimator('train')
-        hooks = self.hooks('train')
+        hooks = self.hooks('train', profiling=profiling)
 
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
