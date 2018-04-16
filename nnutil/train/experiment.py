@@ -142,7 +142,7 @@ class Experiment:
                 throttle_secs=self._checkpoint_secs,
                 steps=self._eval_steps))
 
-    def export(self, export_path=None, batch_size=1, as_text=False):
+    def serving_export(self, export_path=None, as_text=False):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
 
@@ -159,6 +159,10 @@ class Experiment:
         estimator = self.estimator('train')
         savemodel_path = estimator.export_savedmodel(export_path, input_receiver_fn, as_text=True)
         savemodel_path = savemodel_path.decode()
+        return savemodel_path
+
+    def export(self, export_path=None, batch_size=1, as_text=False):
+        savemodel_path = self.serving_export(export_path=export_path, as_text=as_text)
 
         # Freeze exported graph
         with tf.Session(graph=tf.Graph()) as sess:
@@ -169,7 +173,7 @@ class Experiment:
             # Transform variables to constants and strip unused ops
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
                 sess,
-                tf.get_default_graph().as_graph_def(),
+                tf.get_default_graph().as_graph_def(add_shapes=True),
                 ["probabilities"]
             )
 
