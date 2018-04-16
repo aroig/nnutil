@@ -29,5 +29,4 @@ class TensorboardProfilerHook(tf.train.ProfilerHook):
                 with open(path, 'w') as f:
                     f.write(ctf)
 
-
         super().after_run(run_context, run_values)

@@ -9,7 +9,7 @@ class Tensorboard:
         self._tboard_proc = subprocess.Popen([
             "tensorboard",
             "--port=6006",
-            "--debugger_port=6007",
+            # "--debugger_port=6007",
             "--logdir={0}".format(self._path)
         ])
         return self
