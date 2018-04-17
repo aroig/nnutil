@@ -111,8 +111,8 @@ class StyleTransferModel(BaseModel):
 
         def gram(x):
             shape=tf.shape(x)
-            xx = tf.expand_dims(x, -1)
-            return tf.reshape(tf.matmul(xx, xx, transpose_a=True), shape=shape[:-1])
+            x = tf.reshape(x, shape=(shape[0], shape[1] * shape[2], shape[3]))
+            return tf.matmul(x, x, transpose_b=True)
 
         loss = tf.constant(0, dtype=tf.float32)
         for i in [1, 2, 3]:
