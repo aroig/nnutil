@@ -35,7 +35,7 @@ class Experiment:
         if resume:
             all_runs = []
 
-            train_dir = os.path.join(path, self._name)
+            train_dir = self._path
             if os.path.exists(train_dir):
                 all_runs = list(sorted(os.listdir(train_dir)))
 
@@ -150,9 +150,13 @@ class Experiment:
         estimator = self.estimator('train')
         savemodel_path = estimator.export_savedmodel(export_path, input_receiver_fn, as_text=True)
         savemodel_path = savemodel_path.decode()
+
         return savemodel_path
 
     def export(self, export_path=None, batch_size=1, as_text=False):
+        if export_path is None:
+            export_path = os.path.join(self.path, "export")
+
         savemodel_path = self.serving_export(export_path=export_path, as_text=as_text)
 
         # Freeze exported graph
