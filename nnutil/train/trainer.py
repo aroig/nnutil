@@ -76,7 +76,7 @@ class Trainer:
         # visual.plot_sample(train_dataset)
 
         # Benchmark dataset pipeline
-        util.benchmark_dataset(train_dataset)
+        # util.benchmark_dataset(train_dataset)
 
         # Instance of a model attached to a dataset
         experiment = Experiment(self._build_path,
