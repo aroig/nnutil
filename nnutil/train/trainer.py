@@ -11,6 +11,7 @@ from .experiment import Experiment
 from .cluster import Cluster
 from .. import visual
 from .. import dataset
+from .. import util
 
 class Trainer:
     def __init__(self, model, dataset, argv=[]):
@@ -73,6 +74,9 @@ class Trainer:
 
         # Visualization
         # visual.plot_sample(train_dataset)
+
+        # Benchmark dataset pipeline
+        util.benchmark_dataset(train_dataset)
 
         # Instance of a model attached to a dataset
         experiment = Experiment(self._build_path,
