@@ -89,7 +89,7 @@ class Trainer:
         if steps is None:
             steps = 1000
 
-        experiment.train_and_evaluate(steps=steps, profiling=True)
+        experiment.train_and_evaluate(steps=steps, profiling=False)
 
         # Export a frozen model
         experiment.export()
