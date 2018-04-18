@@ -63,42 +63,48 @@ class MutateWindow(tf.data.Dataset):
     def do_mutation(self, feature):
         window = tf.cast(feature[self._window_key], dtype=tf.float32)
 
-        height = window[2]
-        width = window[3]
+        p0 = window[0:2]
+        p1 = window[2:4]
 
-        center_y = window[0] + height/2
-        center_x = window[1] + width/2
+        height = tf.abs(p1[0] - p0[0])
+        width = tf.abs(p1[1] - p0[1])
+
+        center = (p0 + p1) / 2
+
+        v0 = p0 - center
+        v1 = p1 - center
 
         if self._scale is not None:
-            alpha = tf.random_uniform((), minval=self._scale[0], maxval=self._scale[1],
-                                      dtype=tf.float32, seed=self._seed)
+            alpha0 = tf.random_uniform((), minval=self._scale[0], maxval=self._scale[1],
+                                       dtype=tf.float32, seed=self._seed)
+            if self._keep_aspect:
+                alpha = tf.stack([alpha0, alpha0])
 
-            height = alpha * height;
+            else:
+                alpha1 = tf.random_uniform((), minval=self._scale[0], maxval=self._scale[1],
+                                           dtype=tf.float32, seed=self._seed)
+                alpha = tf.stack([alpha0, alpha1])
 
-            # TODO: maybe add option to keep aspect ratio
-            if not self._keep_aspect:
-                alpha = tf.random_uniform((), minval=self._scale[0], maxval=self._scale[1],
-                                          dtype=tf.float32, seed=self._seed)
-
-            width = alpha * width;
+            v0 = v0 * alpha
+            v1 = v1 * alpha
 
         if self._xoffset is not None:
-            delta = tf.random_uniform((), minval=self._xoffset[0], maxval=self._xoffset[1],
-                                      dtype=tf.float32, seed=self._seed)
-            center_x = center_x + delta * width
+            delta1 = tf.random_uniform((), minval=self._xoffset[0], maxval=self._xoffset[1],
+                                       dtype=tf.float32, seed=self._seed)
+        else:
+            delta1 = 0
 
         if self._yoffset is not None:
-            delta = tf.random_uniform((), minval=self._yoffset[0], maxval=self._yoffset[1],
+            delta0 = tf.random_uniform((), minval=self._yoffset[0], maxval=self._yoffset[1],
                                       dtype=tf.float32, seed=self._seed)
-            center_y = center_y + delta * height
+        else:
+            delta0 = 0
 
-        yoffset = tf.cast(tf.round(center_y - height/2), dtype=tf.int32)
-        xoffset = tf.cast(tf.round(center_x - width/2), dtype=tf.int32)
+        center = center + tf.stack([delta0 * height, delta1 * width])
 
-        height = tf.cast(tf.round(height), dtype=tf.int32)
-        width = tf.cast(tf.round(width), dtype=tf.int32)
+        mutated_window = tf.concat([center + v0, center + v1], axis=0)
 
-        feature[self._window_key] = tf.stack([yoffset, xoffset, height, width])
+        feature[self._window_key] = mutated_window
 
         return feature
 

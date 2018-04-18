@@ -4,11 +4,11 @@ import tensorflow as tf
 import numpy as np
 
 class Random(tf.data.Dataset):
-    def __init__(self, shape):
+    def __init__(self, shape, seed=None):
         """shape: (height, width, channels)"""
         self._shape = shape
 
-        dataset = tf.data.Dataset.from_tensors(tf.random_uniform(shape=shape, minval=0, maxval=1))
+        dataset = tf.data.Dataset.from_tensors(tf.random_uniform(shape=shape, minval=0, maxval=1, seed=seed))
         dataset = dataset.repeat()
         dataset = dataset.map(self.prepare_feature)
         self._dataset = dataset
@@ -36,5 +36,5 @@ class Random(tf.data.Dataset):
 
         return feature
 
-def random(shape):
-    return Random(shape=shape)
+def random(shape, seed=None):
+    return Random(shape=shape, seed=seed)

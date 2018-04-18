@@ -4,6 +4,7 @@ import numpy as np
 class AttachImage(tf.data.Dataset):
     def __init__(self, dataset, shape, image_key=None, image_path=None, crop_window=None):
         self._shape = shape
+        self._parallel = 4
 
         if image_key is None:
             image_key = 'image'
@@ -34,13 +35,13 @@ class AttachImage(tf.data.Dataset):
         else:
             raise Exception("Cannot handle crop_window")
 
-        dataset = dataset.map(self.read_image)
+        dataset = dataset.map(self.read_image, num_parallel_calls=self._parallel)
 
         if self._crop_window_fn is not None:
-            dataset = dataset.filter(self.is_crop_window_contained)
-            dataset = dataset.map(self.crop_image)
-
-        dataset = dataset.map(self.resize_image)
+            # dataset = dataset.filter(self.is_crop_window_contained)
+            dataset = dataset.map(self.crop_image, num_parallel_calls=self._parallel)
+        else:
+            dataset = dataset.map(self.resize_image, num_parallel_calls=self._parallel)
 
         self._dataset = dataset
 
@@ -87,16 +88,23 @@ class AttachImage(tf.data.Dataset):
         return feature
 
     def crop_image(self, feature):
-        crop_window = tf.cast(self._crop_window_fn(feature), dtype=tf.int32)
+
+        # (y0, x0, y1, x1) crop window in relative coordinates
+        crop_window = self._crop_window_fn(feature)
+
         image = feature[self._image_key]
 
-        image = tf.image.crop_to_bounding_box(image,
-                                              crop_window[0],
-                                              crop_window[1],
-                                              crop_window[2],
-                                              crop_window[3])
+        image = tf.image.crop_and_resize(
+            tf.expand_dims(image, axis=0),
+            tf.expand_dims(crop_window, axis=0),
+            tf.constant([0], dtype=tf.int32),
+            self._shape[0:2],
+            extrapolation_value=0.5)
 
+        image = tf.squeeze(image, axis=0)
+        image.set_shape(self._shape)
         feature[self._image_key] = image
+
         return feature
 
     def resize_image(self, feature):

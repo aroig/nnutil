@@ -11,6 +11,7 @@ class MutateImage(tf.data.Dataset):
         self._image_key = image_key
 
         self._seed = seed
+        self._parallel = 4
 
         self._brightness = brightness
         self._hue = hue
@@ -20,7 +21,7 @@ class MutateImage(tf.data.Dataset):
         self._hflip = hflip
         self._noise = noise
 
-        self._dataset = dataset.map(self.do_mutation)
+        self._dataset = dataset.map(self.do_mutation, num_parallel_calls=self._parallel)
 
     def _make_multiplicative_range(self, x):
         if x is None:

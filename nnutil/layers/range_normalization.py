@@ -1,12 +1,14 @@
 import tensorflow as tf
 
 class RangeNormalization(tf.layers.Layer):
-    def __init__(self, minval, maxval, axis=None, epsilon=1e-5, **kwargs):
+    def __init__(self, minval, maxval, axis=None, epsilon=1e-5, activation=None, **kwargs):
         self._minval = minval
         self._maxval = maxval
 
         self._axis = axis
         self._epsilon = epsilon
+        self._activation = activation
+
         super(RangeNormalization, self).__init__(**kwargs)
 
     @property
@@ -28,6 +30,10 @@ class RangeNormalization(tf.layers.Layer):
         maxval = tf.reduce_max(inputs, axis=axis, keepdims=True)
 
         outputs = minval + (inputs - minval) / (maxval - minval + self._epsilon)
+
+        if self._activation is not None:
+            outputs = self._activation(outputs)
+
         return outputs
 
     def compute_output_shape(self, input_shape):
