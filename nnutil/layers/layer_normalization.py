@@ -8,14 +8,22 @@ class LayerNormalization(tf.layers.Layer):
 
         super(LayerNormalization, self).__init__(**kwargs)
 
+    @property
+    def axis(self):
+        return self._axis
+
     def call(self, inputs):
-        axis = self._axis
-        if axis is None:
-            axis = list(range(1, len(inputs.shape)))
-        else:
-            axis = [d+1 for d in axis]
+        if self._axis is None:
+            self._axis = list(range(0, len(inputs.shape)-1))
+        axis = [d+1 for d in self._axis]
 
         mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
+
+        # Use the bessel correction for the variance, to match NLConvNet normalization
+        shape = tf.shape(inputs)
+        N = tf.cast(tf.reduce_prod([shape[d] for d in axis]), dtype=tf.float32)
+        variance = variance * N / (N-1)
+
         outputs = (inputs - mean) / tf.sqrt(variance + self._epsilon)
 
         if self._activation is not None:

@@ -12,6 +12,10 @@ class RangeNormalization(tf.layers.Layer):
         super(RangeNormalization, self).__init__(**kwargs)
 
     @property
+    def axis(self):
+        return self._axis
+
+    @property
     def minval(self):
         return self._minval
 
@@ -20,16 +24,14 @@ class RangeNormalization(tf.layers.Layer):
         return self._maxval
 
     def call(self, inputs):
-        axis = self._axis
-        if axis is None:
-            axis = list(range(1, len(inputs.shape)))
-        else:
-            axis = [d+1 for d in axis]
+        if self._axis is None:
+            self._axis = list(range(0, len(inputs.shape)-1))
+        axis = [d+1 for d in self._axis]
 
         minval = tf.reduce_min(inputs, axis=axis, keepdims=True)
         maxval = tf.reduce_max(inputs, axis=axis, keepdims=True)
 
-        outputs = minval + (inputs - minval) / (maxval - minval + self._epsilon)
+        outputs = self._minval + (self._maxval - self._minval) * (inputs - minval) / (maxval - minval + self._epsilon)
 
         if self._activation is not None:
             outputs = self._activation(outputs)
