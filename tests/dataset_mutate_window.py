@@ -20,12 +20,12 @@ class Dataset_AttachImage(unittest.TestCase):
 
             data = sess.run([feature['crop']])
 
-            np.testing.assert_array_equal(data[0], np.array([-9, -9, 39, 39]))
+            np.testing.assert_array_almost_equal(data[0], np.array([-9.284073, -9.284073, 29.284073, 29.284073]))
 
     def test_dataset_mutate_window_xoffset(self):
         tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensors({
-            'crop': tf.constant([0, 0, 20, 20], dtype=tf.int32)
+            'crop': tf.constant([0, 0, 20, 20], dtype=tf.float32)
         })
         ds = nl.dataset.mutate_window(ds, window_key='crop', xoffset=[-0.5, 0.5], seed=42)
 
@@ -35,12 +35,12 @@ class Dataset_AttachImage(unittest.TestCase):
 
             data = sess.run([feature['crop']])
 
-            np.testing.assert_array_equal(data[0], np.array([0, 9, 20, 20]))
+            np.testing.assert_array_almost_equal(data[0], np.array([0, 9.045429, 20, 29.045429]))
 
     def test_dataset_mutate_window_yoffset(self):
         tf.set_random_seed(42)
         ds = tf.data.Dataset.from_tensors({
-            'crop': tf.constant([0, 0, 20, 20], dtype=tf.int32)
+            'crop': tf.constant([0, 0, 20, 20], dtype=tf.float32)
         })
         ds = nl.dataset.mutate_window(ds, window_key='crop', yoffset=[-0.5, 0.5], seed=42)
 
@@ -50,7 +50,7 @@ class Dataset_AttachImage(unittest.TestCase):
 
             data = sess.run([feature['crop']])
 
-            np.testing.assert_array_equal(data[0], np.array([9, 0, 20, 20]))
+            np.testing.assert_array_almost_equal(data[0], np.array([9.045429, 0, 29.045429, 20]))
 
 
 if __name__ == '__main__':

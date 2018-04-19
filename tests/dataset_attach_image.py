@@ -9,7 +9,7 @@ import nnutil as nl
 class Dataset_AttachImage(unittest.TestCase):
     def test_dataset_attach_image(self):
         tf.set_random_seed(42)
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image")
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Tests/image")
         ds = tf.data.Dataset.from_tensors({
             'path': tf.constant(os.path.join(path, "2x3.bmp"), dtype=tf.string)
         })
@@ -30,10 +30,10 @@ class Dataset_AttachImage(unittest.TestCase):
 
     def test_dataset_attach_image_crop(self):
         tf.set_random_seed(42)
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "image")
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Tests/image")
         ds = tf.data.Dataset.from_tensors({
             'path': tf.constant(os.path.join(path, "2x3.bmp"), dtype=tf.string),
-            'crop': tf.constant([0, 0, 2, 2], dtype=tf.int32)
+            'crop': tf.constant([0, 0, 0.5, 1], dtype=tf.float32)
         })
         ds = nl.dataset.attach_image(ds, shape=(2, 2, 3), image_path='path', crop_window='crop')
 

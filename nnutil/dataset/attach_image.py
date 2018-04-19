@@ -78,8 +78,18 @@ class AttachImage(tf.data.Dataset):
         data = tf.read_file(path)
 
         image = tf.image.decode_image(data)
-        if self._shape is not None and self._shape[2] == 1:
-            image = tf.cond(tf.equal(tf.shape(image)[2], 3), lambda: tf.image.rgb_to_grayscale(image), lambda: image)
+        if self._shape is not None:
+            if self._shape[2] == 1:
+                image = tf.cond(
+                    tf.equal(tf.shape(image)[2], 1),
+                    lambda: image,
+                    lambda: tf.image.rgb_to_grayscale(image))
+
+            elif self._shape[2] == 3:
+                image = tf.cond(
+                    tf.equal(tf.shape(image)[2], 3),
+                    lambda: image,
+                    lambda: tf.image.grayscale_to_rgb(image))
 
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
