@@ -77,11 +77,10 @@ class AttachImage(tf.data.Dataset):
         path = self._image_path_fn(feature)
         data = tf.read_file(path)
 
-        nchannels = 0
-        if self._shape is not None:
-            nchannels = self._shape[2]
+        image = tf.image.decode_image(data)
+        if self._shape is not None and self._shape[2] == 1:
+            image = tf.cond(tf.equal(tf.shape(image)[2], 3), lambda: tf.image.rgb_to_grayscale(image), lambda: image)
 
-        image = tf.image.decode_image(data, channels=nchannels)
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
         feature[self._image_key] = image
