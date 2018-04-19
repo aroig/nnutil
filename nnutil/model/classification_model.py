@@ -100,7 +100,7 @@ class ClassificationModel(BaseModel):
         class_accuracy = metrics['class_accuracy']
         label_rel = metrics['label_rel']
 
-        if (len(self.labels) < 20 and int(shape[-1]) in set([1, 3])):
+        if (len(self.labels) < 40 and int(shape[-1]) in set([1, 3])):
             mosaic = util.confusion_mosaic(image, len(self.labels), labels, prediction)
             tf.summary.image("confusion_mosaic", mosaic)
 
