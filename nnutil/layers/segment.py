@@ -20,6 +20,10 @@ class Segment(tf.layers.Layer):
         return self._layers
 
     @property
+    def depth(self):
+        return len(self._layers)
+
+    @property
     def variables(self):
         return [v for l in self._layers for v in l.variables]
 
@@ -41,7 +45,27 @@ class Segment(tf.layers.Layer):
 
     @property
     def size(self):
-        return np.sum([np.prod(v.shape) for l in self._layers for v in l.variables])
+        return np.sum([np.prod(v.shape) for v in self.variables])
+
+    @property
+    def input(self):
+        return self._layers[0].input
+
+    @property
+    def input_shape(self):
+        return self._layers[0].input_shape
+
+    @property
+    def output(self):
+        return self._layers[-1].output
+
+    @property
+    def output_shape(self):
+        return self._layers[-1].output_shape
+
+    @property
+    def layer_activations(self):
+        return self._outputs
 
     def build(self, input_shape):
         shape = input_shape
@@ -77,7 +101,3 @@ class Segment(tf.layers.Layer):
         for l in self._layers:
             shape = l.compute_output_shape(shape)
         return shape
-
-    @property
-    def layer_activations(self):
-        return self._outputs
