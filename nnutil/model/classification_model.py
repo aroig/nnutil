@@ -11,22 +11,13 @@ from .. import util
 from .base_model import BaseModel
 
 class ClassificationModel(BaseModel):
-    def __init__(self, name, shape, labels, outfunction=None):
+    def __init__(self, name, shape, labels):
         super().__init__(name)
-
-        if outfunction is None:
-            outfunction = tf.nn.softmax
-
-        self._outfunction = outfunction
 
         self._shape = shape
         self._labels = labels
 
         self._classifier = None
-
-    @property
-    def outfunction(self):
-        return self._outfunction
 
     @property
     def input_shape(self):
@@ -59,8 +50,7 @@ class ClassificationModel(BaseModel):
         metrics['loss'] = loss
 
         with tf.name_scope("metrics"):
-            probs = tf.reshape(tf.nn.softmax(logits), shape=(-1, len(self.labels)))
-            metrics['probs'] = probs
+            metrics['probs'] = self.probabilities(logits)
 
             prediction = tf.argmax(logits, axis=1)
             metrics['prediction'] = prediction
@@ -201,10 +191,7 @@ class ClassificationModel(BaseModel):
     def prediction_estimator_spec(self, logits, params, config):
         prediction = tf.argmax(input=logits, axis=1)
 
-        probs = tf.reshape(
-            self.outfunction(logits),
-            shape=(-1, len(self.labels)),
-            name="probabilities")
+        probs = self.probabilities(logits)
 
         prediction_dict = {
             "class": prediction,
@@ -221,6 +208,15 @@ class ClassificationModel(BaseModel):
             predictions=prediction_dict,
             export_outputs=exports_dict
         )
+
+    def probabilities(self, logits):
+        return tf.reshape(
+            tf.nn.softmax(logits),
+            shape=(-1, len(self.labels)),
+            name="probabilities")
+
+    def loss_function(self, labels, logits):
+        return tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
 
     def classifier_network(self, params):
         raise NotImplementedError
@@ -239,7 +235,7 @@ class ClassificationModel(BaseModel):
 
         # Calculate total loss function
         with tf.name_scope('losses'):
-            loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+            loss = self.loss_function(labels, logits)
             loss += sum([l for l in self._classifier.losses])
 
         # Configure the training and eval phases
