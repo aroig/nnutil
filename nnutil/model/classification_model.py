@@ -107,17 +107,33 @@ class ClassificationModel(BaseModel):
             for i, lb in enumerate(self.labels):
                 tf.summary.scalar(lb, tf.reduce_mean(class_accuracy[i]))
 
+        with tf.name_scope("class_distribution"):
+            for i, lb in enumerate(self.labels):
+                summary.distribution(lb, confusion[i, :])
+
     def training_estimator_spec(self, loss, image, labels, logits, params, config):
         step = tf.train.get_global_step()
         learning_rate = params.get('learning_rate', 0.001)
+        learning_rate_decay = params.get('learning_rate_decay', 1.0)
+        regularizer = params.get('regularizer', 0.0)
+        regularizer_threshold = params.get('regularizer_threshold', 0)
+
+        learning_rate = learning_rate * tf.exp(tf.cast(step, dtype=tf.float32) * tf.log(learning_rate_decay))
+        tf.summary.scalar('learning_rate', learning_rate)
 
         ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
+        # Add training losses
+        with tf.name_scope('losses'):
+            reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+            regularizer = regularizer * tf.sigmoid(tf.cast(step - regularizer_threshold, dtype=tf.float32) / 10.0)
+            total_loss = loss + regularizer * sum([l for l in reg_losses])
+
         # Manually apply gradients. We want the gradients for summaries.
         # We need to apply them manually in order to avoid having
         # duplicate gradient ops.
-        gradients = optimizer.compute_gradients(loss)
+        gradients = optimizer.compute_gradients(total_loss)
 
         metrics = self.classification_metrics(loss, labels, logits)
         confusion = metrics['confusion']
@@ -236,7 +252,6 @@ class ClassificationModel(BaseModel):
         # Calculate total loss function
         with tf.name_scope('losses'):
             loss = self.loss_function(labels, logits)
-            loss += sum([l for l in self._classifier.losses])
 
         # Configure the training and eval phases
         if mode == tf.estimator.ModeKeys.TRAIN:
