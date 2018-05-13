@@ -21,6 +21,8 @@ class JSONFiles(tf.data.Dataset):
             os.path.join(self._directory, self._glob),
             shuffle=shuffle)
 
+        files_dataset = files_dataset.filter(self.path_exists)
+
         dataset = files_dataset.flat_map(self.load_content)
         self._dataset = dataset
 
@@ -38,6 +40,9 @@ class JSONFiles(tf.data.Dataset):
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
+
+    def path_exists(self, path):
+        return tf.py_func(lambda x: os.path.exists(x.decode()), [path], [tf.bool], stateful=False)
 
     def load_content(self, path):
         content = tf.data.Dataset.from_tensors(tf.read_file(path))

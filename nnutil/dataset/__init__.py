@@ -12,3 +12,6 @@ from .parse_json import *
 from .json_files import *
 from .merge import *
 from .attach_image import *
+from .attach_raw import *
+from .tfrecord import *
+from .crop_image import *

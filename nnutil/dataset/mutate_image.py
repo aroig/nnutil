@@ -1,17 +1,20 @@
 import tensorflow as tf
 import numpy as np
+import math
+import multiprocessing
 
 class MutateImage(tf.data.Dataset):
     def __init__(self, dataset, image_key=None,
                  hue=None, brightness=None, contrast=None, saturation=None,
-                 hflip=False, noise=None, seed=None):
+                 hflip=False, rotate=None,
+                 gaussian_noise=None, impulse_noise=None, seed=None):
 
         if image_key is None:
             image_key = 'image'
         self._image_key = image_key
 
         self._seed = seed
-        self._parallel = 4
+        self._parallel = int (0.8 * multiprocessing.cpu_count())
 
         self._brightness = brightness
         self._hue = hue
@@ -19,7 +22,10 @@ class MutateImage(tf.data.Dataset):
         self._saturation = self._make_multiplicative_range(saturation)
 
         self._hflip = hflip
-        self._noise = noise
+        self._rotate = self._make_additive_range(rotate)
+
+        self._gaussian_noise = self._make_additive_range(gaussian_noise)
+        self._impulse_noise = self._make_additive_range(impulse_noise)
 
         self._dataset = dataset.map(self.do_mutation, num_parallel_calls=self._parallel)
 
@@ -35,6 +41,19 @@ class MutateImage(tf.data.Dataset):
 
         else:
             raise Exception("Unknown multiplicative range")
+
+    def _make_additive_range(self, x):
+        if x is None:
+            return None
+
+        if type(x) == float and x >= 0:
+            return (-x, x)
+
+        elif type(x) == tuple or type(x) == list:
+            return (x[0], x[1])
+
+        else:
+            raise Exception("Unknown additive range")
 
     @property
     def output_classes(self):
@@ -79,8 +98,30 @@ class MutateImage(tf.data.Dataset):
         if self._hflip:
             image = tf.image.random_flip_left_right(image)
 
-        if self._noise is not None:
-            image = image + tf.random_normal(image.shape, mean=0, stddev=self._noise)
+        if self._rotate is not None:
+            angle = (2 * math.pi / 360) * tf.random_uniform((), minval=self._rotate[0], maxval=self._rotate[1], dtype=tf.float32)
+            image = tf.contrib.image.rotate(image, angle, interpolation='BILINEAR')
+
+        if self._gaussian_noise is not None:
+            sigma = tf.random_uniform(
+                (),
+                minval=self._gaussian_noise[0],
+                maxval=self._gaussian_noise[1],
+                dtype=tf.float32)
+            noise = tf.random_normal(image.shape, mean=0, stddev=sigma)
+            image = image + noise
+
+        if self._impulse_noise is not None:
+            prob = tf.random_uniform(
+                (),
+                minval=self._impulse_noise[0],
+                maxval=self._impulse_noise[1],
+                dtype=tf.float32)
+            dist = tf.distributions.Categorical(
+                probs=[0.5*prob, 1 - prob, 0.5*prob],
+                dtype=tf.float32)
+            noise = dist.sample(image.shape) - 1
+            image = image + noise
 
         feature[self._image_key] = tf.clip_by_value(image, 0.0, 1.0)
 
@@ -89,7 +130,8 @@ class MutateImage(tf.data.Dataset):
 
 def mutate_image(dataset, image_key=None,
                  hue=None, brightness=None, contrast=None, saturation=None,
-                 hflip=False, noise=None, seed=None):
+                 hflip=False, rotate=None,
+                 gaussian_noise=None, impulse_noise=None, seed=None):
     return MutateImage(dataset,
                        image_key=image_key,
                        hue=hue,
@@ -97,5 +139,7 @@ def mutate_image(dataset, image_key=None,
                        contrast=contrast,
                        saturation=saturation,
                        hflip=hflip,
-                       noise=noise,
+                       rotate=rotate,
+                       gaussian_noise=gaussian_noise,
+                       impulse_noise=impulse_noise,
                        seed=seed)
