@@ -19,9 +19,9 @@ class Experiment:
         self._hyperparameters = hyperparameters
         self._seed = seed
 
-        self._profile_secs = 60
-        self._log_secs = 60
-        self._checkpoint_secs = 60
+        self._profile_secs = 120
+        self._log_secs = 120
+        self._checkpoint_secs = 120
         self._summary_steps = 10
         self._eval_steps = 5
 
