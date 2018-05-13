@@ -17,7 +17,18 @@ class Segment(tf.layers.Layer):
 
     @property
     def layers(self):
-        return self._layers
+        def append_layers(L, l):
+            if type(l) == Segment:
+                for l2 in l.layers:
+                    append_layers(L, l2)
+            else:
+                L.append(l)
+
+        layer_list = []
+        for l in self._layers:
+            append_layers(layer_list, l)
+
+        return layer_list
 
     @property
     def depth(self):
