@@ -234,6 +234,14 @@ class MosaicWindow:
                 else:
                     subprocess.run(['xdg-open', path])
 
+        elif event.key == 'm':
+            item = self.selected_item
+            if item is not None:
+                json_path = os.path.splitext(item.path)[0] + '.json'
+                if os.path.exists(json_path):
+                    print("mask: {}".format(json_path))
+                    os.rename(json_path, json_path + '_')
+
     def onclick(self, event):
         for i, item in enumerate(self._items):
             if item.in_axes(event):

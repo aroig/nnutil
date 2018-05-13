@@ -9,9 +9,8 @@ class Tensorboard:
         self._tboard_proc = subprocess.Popen([
             "tensorboard",
             "--port=6006",
-            # "--debugger_port=6007",
             "--logdir={0}".format(self._path)
-        ])
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return self
 
     def __exit__(self, type, value, traceback):
