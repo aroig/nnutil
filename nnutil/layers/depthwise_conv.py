@@ -90,6 +90,11 @@ class _DepthwiseConv(_Conv):
   def call(self, inputs):
     raise NotImplementedError
 
+  def compute_output_shape(self, input_shape):
+    shape = super(_DepthwiseConv, self).compute_output_shape(input_shape).as_list()
+    shape[3] = self.depth_multiplier * int(input_shape[3])
+    return tensor_shape.TensorShape(shape)
+
 
 class DepthwiseConv1D(_DepthwiseConv):
   def __init__(self,

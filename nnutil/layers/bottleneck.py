@@ -10,7 +10,7 @@ class Bottleneck2D(Segment):
         super(Bottleneck2D, self).__init__(layers=[
             tf.layers.Conv2D(filters=depth_multiplier * filters,
                              kernel_size=1,
-                             strides=strides,
+                             strides=1,
                              data_format=data_format,
                              kernel_regularizer=kernel_regularizer,
                              activation=activation),
@@ -18,7 +18,7 @@ class Bottleneck2D(Segment):
             DepthwiseConv2D(kernel_size=kernel_size,
                             strides=strides,
                             padding=padding,
-                            depth_multiplier=depth_multiplier,
+                            depth_multiplier=1,
                             data_format=data_format,
                             kernel_regularizer=kernel_regularizer,
                             activation=activation),
