@@ -32,7 +32,7 @@ class Segment(tf.layers.Layer):
 
     @property
     def depth(self):
-        return len(self._layers)
+        return len(self.layers)
 
     @property
     def variables(self):
@@ -84,6 +84,14 @@ class Segment(tf.layers.Layer):
             l.build(shape)
             shape = l.compute_output_shape(shape)
 
+        if self._residual:
+            assert(input_shape.ndims == shape.ndims)
+            assert(all([int(input_shape[i]) % int(shape[i]) == 0
+                        for i in range(1, input_shape.ndims)]))
+
+            self._pool_window = [int(int(input_shape[i]) / int(shape[i]))
+                                 for i in range(1, input_shape.ndims)]
+
         super(Segment, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -98,7 +106,17 @@ class Segment(tf.layers.Layer):
             self._outputs.append(x)
 
         if self._residual:
-            output = inputs + x
+            if np.prod(self._pool_window) == 1:
+                pool_input = inputs
+            else:
+                pool_input = tf.nn.pool(
+                    tf.expand_dims(inputs, axis=-1),
+                    self._pool_window,
+                    pooling_type='AVG',
+                    padding='VALID',
+                    strides=self._pool_window)
+                pool_input = tf.squeeze(pool_input, axis=-1)
+            output = pool_input + x
         else:
             output = x
 
