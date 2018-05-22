@@ -11,11 +11,14 @@ from .. import util
 from .base_model import BaseModel
 
 class ClassificationModel(BaseModel):
-    def __init__(self, name, shape, labels):
+    def __init__(self, name, shape, labels, class_weights=None):
         super().__init__(name)
 
         self._shape = shape
         self._labels = labels
+
+        if class_weights is None:
+            self._class_weights = [1.0] * len(labels)
 
         self._classifier = None
 
@@ -116,7 +119,7 @@ class ClassificationModel(BaseModel):
         learning_rate = params.get('learning_rate', 0.001)
         learning_rate_decay = params.get('learning_rate_decay', 1.0)
         regularizer = params.get('regularizer', 0.0)
-        regularizer_threshold = params.get('regularizer_threshold', 0)
+        regularizer_step = params.get('regularizer_step', 0)
 
         learning_rate = learning_rate * tf.exp(tf.cast(step, dtype=tf.float32) * tf.log(learning_rate_decay))
         tf.summary.scalar('learning_rate', learning_rate)
@@ -127,7 +130,8 @@ class ClassificationModel(BaseModel):
         # Add training losses
         with tf.name_scope('losses'):
             reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-            regularizer = regularizer * tf.sigmoid(tf.cast(step - regularizer_threshold, dtype=tf.float32) / 10.0)
+            dampening = tf.sigmoid(tf.cast(step - regularizer_step, dtype=tf.float32) / 10.0)
+            regularizer = regularizer * dampening
             total_loss = loss + regularizer * sum([l for l in reg_losses])
 
         # Manually apply gradients. We want the gradients for summaries.
@@ -180,6 +184,7 @@ class ClassificationModel(BaseModel):
 
         confusion_avg, confusion_op = tf.metrics.mean_tensor(confusion)
         tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, confusion_op)
+        # eval_metric_ops['confusion'] = (confusion_avg, confusion_op)
 
         self.classification_summaries(image, labels, metrics, confusion_avg)
 
@@ -190,9 +195,10 @@ class ClassificationModel(BaseModel):
         with tf.control_dependencies(extra_ops):
             loss = tf.identity(loss)
 
+        eval_dir = os.path.join(config.model_dir, "eval")
         evaluation_hooks.append(
             train.EvalSummarySaverHook(
-                output_dir=os.path.join(config.model_dir, "eval"),
+                output_dir=eval_dir,
                 summary_op=tf.summary.merge_all()
             )
         )
@@ -232,14 +238,40 @@ class ClassificationModel(BaseModel):
             name="probabilities")
 
     def loss_function(self, labels, logits):
-        return tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        loss = tf.losses.sparse_softmax_cross_entropy(labels, logits, reduction=tf.losses.Reduction.NONE)
+        return loss
+
+    def weighted_loss(self, labels, logits, sample_bias=0.0):
+        sample_loss = self.loss_function(labels, logits)
+
+        mu, sigma = tf.nn.moments(sample_loss, axes=[0])
+        norm_sample_loss = (sample_loss - mu) / (sigma + 1e-1)
+
+        threshold = 1.0
+        sample_weights = tf.stop_gradient(tf.minimum(
+            tf.exp(sample_bias * norm_sample_loss),
+            threshold))
+
+        class_weights = tf.gather_nd(
+            tf.constant(self._class_weights, dtype=tf.float32),
+            tf.expand_dims(labels, axis=-1))
+
+        average_loss = tf.losses.compute_weighted_loss(
+            sample_loss,
+            weights=sample_weights * class_weights)
+
+        return average_loss
 
     def classifier_network(self, params):
         raise NotImplementedError
 
     def model_fn(self, features, labels, mode, params, config):
         image = features['image']
-        labels = tf.cast(features['label'], tf.int32)
+        step = tf.train.get_global_step()
+
+        labels = None
+        if 'label' in features:
+            labels = tf.cast(features['label'], tf.int32)
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -249,9 +281,22 @@ class ClassificationModel(BaseModel):
         if mode == tf.estimator.ModeKeys.PREDICT:
             return self.prediction_estimator_spec(logits, params, config)
 
+        # Sample weights, so that easy samples weight less
+        sample_bias = params.get('sample_bias', 0.0)
+        sample_bias_step = params.get('sample_bias_step', 0)
+
         # Calculate total loss function
         with tf.name_scope('losses'):
-            loss = self.loss_function(labels, logits)
+            if labels is not None:
+                cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+                dampening = tf.sigmoid(tf.cast(step - sample_bias_step, dtype=tf.float32) / 10.0)
+                loss = self.weighted_loss(labels, logits, sample_bias=sample_bias * dampening)
+
+            else:
+                cross_entropy = tf.constant(0, dtype=tf.float32)
+                loss = tf.constant(0, dtype=tf.float32)
+
+        tf.summary.scalar("cross_entropy", cross_entropy)
 
         # Configure the training and eval phases
         if mode == tf.estimator.ModeKeys.TRAIN:
