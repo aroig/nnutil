@@ -1,6 +1,9 @@
 import inspect
+
 import tensorflow as tf
 import numpy as np
+
+from ..math import approximate_identity
 
 class Segment(tf.layers.Layer):
     def __init__(self, layers, residual=False, activation=None, activity_regularizer=None,
@@ -18,7 +21,7 @@ class Segment(tf.layers.Layer):
     @property
     def layers(self):
         def append_layers(L, l):
-            if type(l) == Segment:
+            if isinstance(l, Segment):
                 for l2 in l.layers:
                     append_layers(L, l2)
             else:
@@ -80,17 +83,14 @@ class Segment(tf.layers.Layer):
 
     def build(self, input_shape):
         shape = input_shape
+
         for l in self._layers:
-            l.build(shape)
+            # NOTE: do not call l.build(shape) here because it will get placed in the wrong scope.
+            # Let it happen lazily when doing l.apply(...)
             shape = l.compute_output_shape(shape)
 
         if self._residual:
             assert(input_shape.ndims == shape.ndims)
-            assert(all([int(input_shape[i]) % int(shape[i]) == 0
-                        for i in range(1, input_shape.ndims)]))
-
-            self._pool_window = [int(int(input_shape[i]) / int(shape[i]))
-                                 for i in range(1, input_shape.ndims)]
 
         super(Segment, self).build(input_shape)
 
@@ -106,17 +106,8 @@ class Segment(tf.layers.Layer):
             self._outputs.append(x)
 
         if self._residual:
-            if np.prod(self._pool_window) == 1:
-                pool_input = inputs
-            else:
-                pool_input = tf.nn.pool(
-                    tf.expand_dims(inputs, axis=-1),
-                    self._pool_window,
-                    pooling_type='AVG',
-                    padding='VALID',
-                    strides=self._pool_window)
-                pool_input = tf.squeeze(pool_input, axis=-1)
-            output = pool_input + x
+            shape = x.shape.as_list()
+            output = approximate_identity(inputs, shape) + x
         else:
             output = x
 

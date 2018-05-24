@@ -37,4 +37,3 @@ class Bottleneck2D(Segment):
         self._padding = padding
         self._data_format = data_format
         self._depth_multiplier = depth_multiplier
-        self._activation = activation
