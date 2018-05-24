@@ -12,7 +12,7 @@ from tensorflow.python.data.util import nest
 
 
 class MosaicItem:
-    def __init__(self, ax, image_fn=None, path_fn=None, label_fn=None, box_fn=None):
+    def __init__(self, ax, image_fn=None, path_fn=None, json_path_fn=None, label_fn=None, box_fn=None):
         self._feature = None
         self._ax = ax
 
@@ -29,6 +29,13 @@ class MosaicItem:
             self._path_fn = lambda x: x[path_fn] if path_fn in x else None
         else:
             self._path_fn = path_fn
+
+        if json_path_fn is None:
+            self._json_path_fn = lambda x: x['json_path'] if 'json_path' in x else None
+        elif type(json_path_fn) == str:
+            self._json_path_fn = lambda x: x[json_path_fn] if json_path_fn in x else None
+        else:
+            self._json_path_fn = json_path_fn
 
         if label_fn is None:
             self._label_fn = lambda x: x['label'] if 'label' in x else None
@@ -76,6 +83,11 @@ class MosaicItem:
     @property
     def path(self):
         val = self._path_fn(self._feature)
+        return np.asscalar(val).decode() if val is not None else None
+
+    @property
+    def json_path(self):
+        val = self._json_path_fn(self._feature)
         return np.asscalar(val).decode() if val is not None else None
 
     @property
@@ -228,19 +240,40 @@ class MosaicWindow:
             item = self.selected_item
             if item is not None:
                 path = item.path
-                print("path: %s" % path)
+                print("view: {}".format(path))
                 if platform.system() == 'Windows':
                     os.startfile(path)
                 else:
                     subprocess.run(['xdg-open', path])
 
+        elif event.key == 'e':
+            item = self.selected_item
+            if item is not None:
+                json_path = item.json_path
+                if os.path.exists(json_path):
+                    print("edit: {}".format(json_path))
+                if platform.system() == 'Windows':
+                    subprocess.run(['notepad.exe', json_path])
+                else:
+                    subprocess.run(['xdg-open', json_path])
+
         elif event.key == 'm':
             item = self.selected_item
             if item is not None:
                 json_path = os.path.splitext(item.path)[0] + '.json'
+                masked_path = json_path + '_'
                 if os.path.exists(json_path):
                     print("mask: {}".format(json_path))
-                    os.rename(json_path, json_path + '_')
+                    os.rename(json_path, masked_path)
+
+        elif event.key == 'u':
+            item = self.selected_item
+            if item is not None:
+                json_path = os.path.splitext(item.path)[0] + '.json'
+                masked_path = json_path + '_'
+                if os.path.exists(masked_path):
+                    print("unmask: {}".format(masked_path))
+                    os.rename(masked_path, json_path)
 
     def onclick(self, event):
         for i, item in enumerate(self._items):
