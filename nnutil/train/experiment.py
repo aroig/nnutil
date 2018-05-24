@@ -96,7 +96,7 @@ class Experiment:
 
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
-    def evaluate(self):
+    def evaluate(self, steps, name=None):
         eval_dataset = self._eval_dataset
         def input_fn():
             return self.iterator(eval_dataset)
@@ -104,7 +104,7 @@ class Experiment:
         estimator = self.estimator('eval')
         hooks = self.hooks('eval')
 
-        results = estimator.evaluate(input_fn=input_fn, hooks=hooks)
+        results = estimator.evaluate(input_fn=input_fn, steps=steps, hooks=hooks, name=name)
         return results
 
     def train_and_evaluate(self, steps=2000, profiling=False):
