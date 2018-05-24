@@ -20,5 +20,6 @@ from . import model
 from . import util
 from . import layers
 from . import summary
+from . import math
 
 from tensorflow.python.framework.tensor_spec import TensorSpec
