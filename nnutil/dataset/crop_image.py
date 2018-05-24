@@ -67,6 +67,7 @@ class CropImage(tf.data.Dataset):
 
         image = feature[self._image_key]
 
+        # NOTE: We rotate a standardized image, so that the padding is done with a value that becomes zero
         mu, variance = tf.nn.moments(image, axes=[0, 1, 2])
         norm_image = tf.image.per_image_standardization(image)
 
@@ -92,7 +93,7 @@ class CropImage(tf.data.Dataset):
             # resize_image wants a static shape, but the kernel does
             # not seem to use it. Let's fake it.
             image.set_shape([None, None, None])
-            image = tf.image.resize_images(image, size=self._shape[0:2])
+            image = tf.image.resize_images(image, size=self._shape[0:2], method=tf.image.ResizeMethod.BILINEAR)
             image.set_shape(self._shape)
 
         feature[self._image_key] = image

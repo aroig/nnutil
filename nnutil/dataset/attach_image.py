@@ -72,6 +72,8 @@ class AttachImage(tf.data.Dataset):
         data = self._image_data_fn(feature)
 
         image = tf.image.decode_image(data)
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+
         if self._shape is not None:
             if self._shape[2] == 1:
                 image = tf.cond(
@@ -85,7 +87,11 @@ class AttachImage(tf.data.Dataset):
                     lambda: image,
                     lambda: tf.image.grayscale_to_rgb(image))
 
-        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+            # resize_image wants a static shape, but the kernel does
+            # not seem to use it. Let's fake it.
+            image.set_shape([None, None, None])
+            image = tf.image.resize_images(image, size=self._shape[0:2], method=tf.image.ResizeMethod.BILINEAR)
+            image.set_shape(self._shape)
 
         feature[self._image_key] = image
 

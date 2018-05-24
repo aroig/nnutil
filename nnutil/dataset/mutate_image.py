@@ -100,7 +100,15 @@ class MutateImage(tf.data.Dataset):
 
         if self._rotate is not None:
             angle = (2 * math.pi / 360) * tf.random_uniform((), minval=self._rotate[0], maxval=self._rotate[1], dtype=tf.float32)
-            image = tf.contrib.image.rotate(image, angle, interpolation='BILINEAR')
+
+            # NOTE: We rotate a standardized image, so that the padding is done with a value that becomes zero
+            mu, variance = tf.nn.moments(image, axes=[0, 1, 2])
+            norm_image = tf.image.per_image_standardization(image)
+
+            norm_image = tf.contrib.image.rotate(norm_image, angle, interpolation='BILINEAR')
+
+            image = tf.clip_by_value(mu + tf.sqrt(variance) * norm_image, 0.0, 1.0)
+
 
         if self._gaussian_noise is not None:
             sigma = tf.random_uniform(
