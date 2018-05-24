@@ -118,26 +118,19 @@ class ClassificationModel(BaseModel):
         step = tf.train.get_global_step()
         learning_rate = params.get('learning_rate', 0.001)
         learning_rate_decay = params.get('learning_rate_decay', 1.0)
-        regularizer = params.get('regularizer', 0.0)
-        regularizer_step = params.get('regularizer_step', 0)
 
-        learning_rate = learning_rate * tf.exp(tf.cast(step, dtype=tf.float32) * tf.log(learning_rate_decay))
+        with tf.name_scope('optimizer'):
+            learning_rate = learning_rate * tf.exp(tf.cast(step, dtype=tf.float32) * tf.log(learning_rate_decay))
+
+            ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
+            optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+            # Manually apply gradients. We want the gradients for summaries.
+            # We need to apply them manually in order to avoid having
+            # duplicate gradient ops.
+            gradients = optimizer.compute_gradients(loss)
+
         tf.summary.scalar('learning_rate', learning_rate)
-
-        ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-        # Add training losses
-        with tf.name_scope('losses'):
-            reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-            dampening = tf.sigmoid(tf.cast(step - regularizer_step, dtype=tf.float32) / 10.0)
-            regularizer = regularizer * dampening
-            total_loss = loss + regularizer * sum([l for l in reg_losses])
-
-        # Manually apply gradients. We want the gradients for summaries.
-        # We need to apply them manually in order to avoid having
-        # duplicate gradient ops.
-        gradients = optimizer.compute_gradients(total_loss)
 
         metrics = self.classification_metrics(loss, labels, logits)
         confusion = metrics['confusion']
@@ -285,22 +278,30 @@ class ClassificationModel(BaseModel):
         sample_bias = params.get('sample_bias', 0.0)
         sample_bias_step = params.get('sample_bias_step', 0)
 
+        regularizer = params.get('regularizer', 0.0)
+        regularizer_step = params.get('regularizer_step', 0)
+
         # Calculate total loss function
         with tf.name_scope('losses'):
             if labels is not None:
                 cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-                dampening = tf.sigmoid(tf.cast(step - sample_bias_step, dtype=tf.float32) / 10.0)
-                loss = self.weighted_loss(labels, logits, sample_bias=sample_bias * dampening)
+                sample_bias_dampening = tf.sigmoid(tf.cast(step - sample_bias_step, dtype=tf.float32) / 10.0)
+                model_loss = self.weighted_loss(labels, logits, sample_bias=sample_bias * sample_bias_dampening)
+
+                regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+                regularization_dampening = tf.sigmoid(tf.cast(step - regularizer_step, dtype=tf.float32) / 10.0)
+                total_loss = model_loss + regularizer * regularization_dampening * sum([l for l in regularization_losses])
 
             else:
                 cross_entropy = tf.constant(0, dtype=tf.float32)
-                loss = tf.constant(0, dtype=tf.float32)
+                model_loss = tf.constant(0, dtype=tf.float32)
+                total_loss = tf.constant(0, dtype=tf.float32)
 
         tf.summary.scalar("cross_entropy", cross_entropy)
 
         # Configure the training and eval phases
         if mode == tf.estimator.ModeKeys.TRAIN:
-            return self.training_estimator_spec(loss, image, labels, logits, params, config)
+            return self.training_estimator_spec(total_loss, image, labels, logits, params, config)
 
         else:
-            return self.evaluation_estimator_spec(loss, image, labels, logits, params, config)
+            return self.evaluation_estimator_spec(total_loss, image, labels, logits, params, config)
