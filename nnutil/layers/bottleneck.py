@@ -5,7 +5,7 @@ from .depthwise_conv import DepthwiseConv2D
 class Bottleneck2D(Segment):
     def __init__(self, filters=None, kernel_size=None, strides=None, padding="same",
                  data_format="channels_last", depth_multiplier=1, activation=None,
-                 kernel_regularizer=None, residual=False):
+                 kernel_regularizer=None, activity_regularizer=None, residual=False):
 
         super(Bottleneck2D, self).__init__(layers=[
             tf.layers.Conv2D(filters=depth_multiplier * filters,
@@ -13,6 +13,7 @@ class Bottleneck2D(Segment):
                              strides=1,
                              data_format=data_format,
                              kernel_regularizer=kernel_regularizer,
+                             activity_regularizer=activity_regularizer,
                              activation=activation),
 
             DepthwiseConv2D(kernel_size=kernel_size,
@@ -21,6 +22,7 @@ class Bottleneck2D(Segment):
                             depth_multiplier=1,
                             data_format=data_format,
                             kernel_regularizer=kernel_regularizer,
+                            activity_regularizer=activity_regularizer,
                             activation=activation),
 
             tf.layers.Conv2D(filters=filters,
@@ -28,6 +30,7 @@ class Bottleneck2D(Segment):
                              strides=1,
                              data_format=data_format,
                              kernel_regularizer=kernel_regularizer,
+                             activity_regularizer=activity_regularizer,
                              activation=None)
         ], residual=residual, activation=None)
 
