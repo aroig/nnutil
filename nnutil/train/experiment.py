@@ -10,7 +10,7 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 
 class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None,
-                 hyperparameters=None, resume=False, seed=None):
+                 hyperparameters=None, resume=False, seed=None, eval_secs=None):
         if hyperparameters is None:
             hyperparameters = {}
         self._model = model
@@ -19,11 +19,14 @@ class Experiment:
         self._hyperparameters = hyperparameters
         self._seed = seed
 
+        if eval_secs is None:
+            eval_secs = 120
+
         self._profile_secs = 120
         self._log_secs = 120
         self._checkpoint_secs = 120
-        self._summary_steps = 10
-        self._eval_steps = 5
+        self._eval_secs = eval_secs
+        self._summary_steps = 30
 
         # TODO: make up a name mixing model and dataset names
         self._name = self._model.name
@@ -107,7 +110,10 @@ class Experiment:
         results = estimator.evaluate(input_fn=input_fn, steps=steps, hooks=hooks, name=name)
         return results
 
-    def train_and_evaluate(self, steps=2000, profiling=False):
+    def train_and_evaluate(self, steps=2000, eval_steps=None, profiling=False):
+
+        if eval_steps is None:
+            eval_steps = 5
 
         train_dataset = self._train_dataset
         def train_input_fn():
@@ -130,8 +136,8 @@ class Experiment:
             tf.estimator.EvalSpec(
                 hooks=evaluation_hooks,
                 input_fn=eval_input_fn,
-                throttle_secs=self._checkpoint_secs,
-                steps=self._eval_steps))
+                throttle_secs=self._eval_secs,
+                steps=eval_steps))
 
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:
