@@ -151,8 +151,9 @@ class ClassificationModel(BaseModel):
             summary.activation_map("activation_summary", logits, image)
 
         summary.layers("layer_summary_{}".format(self._classifier.name),
-                          self._classifier.layers,
-                          gradients)
+                       layers=self._classifier.layers,
+                       gradients=gradients,
+                       activations=self._classifier.layer_activations)
 
         self.classification_summaries(image, labels, metrics, confusion_avg)
 
