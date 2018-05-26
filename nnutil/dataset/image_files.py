@@ -22,7 +22,8 @@ class ImageFiles(tf.data.Dataset):
             dataset,
             self._shape,
             image_key=image_key,
-            image_path='path')
+            image_path='path',
+            shape_key='shape')
 
         self._dataset = dataset
 

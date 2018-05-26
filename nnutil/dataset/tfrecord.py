@@ -37,6 +37,12 @@ class TFRecord(tf.data.Dataset):
         elif type(input_spec) == TensorSpec:
             return tf.FixedLenFeature(input_spec.shape, input_spec.dtype)
 
+        elif type(input_spec) == tf.FixedLenFeature:
+            return input_spec
+
+        elif type(input_spec) == tf.VarLenFeature:
+            return input_spec
+
         else:
             raise Exception("Unhandled input spec")
 
@@ -50,4 +56,3 @@ class TFRecord(tf.data.Dataset):
 
 def tfrecord(path, input_spec):
     return TFRecord(path=path, input_spec=input_spec)
-

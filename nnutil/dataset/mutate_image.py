@@ -116,7 +116,7 @@ class MutateImage(tf.data.Dataset):
                 minval=self._gaussian_noise[0],
                 maxval=self._gaussian_noise[1],
                 dtype=tf.float32)
-            noise = tf.random_normal(image.shape, mean=0, stddev=sigma)
+            noise = tf.random_normal(tf.shape(image), mean=0, stddev=sigma)
             image = image + noise
 
         if self._impulse_noise is not None:
@@ -128,7 +128,7 @@ class MutateImage(tf.data.Dataset):
             dist = tf.distributions.Categorical(
                 probs=[0.5*prob, 1 - prob, 0.5*prob],
                 dtype=tf.float32)
-            noise = dist.sample(image.shape) - 1
+            noise = dist.sample(tf.shape(image)) - 1
             image = image + noise
 
         feature[self._image_key] = tf.clip_by_value(image, 0.0, 1.0)
