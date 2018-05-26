@@ -18,8 +18,10 @@ class Experiment:
             hyperparameters = {}
 
         self._model = model
+
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
+
         self._hyperparameters = hyperparameters
         self._seed = seed
 
@@ -64,6 +66,15 @@ class Experiment:
     def model(self):
         return self._model
 
+    @property
+    def train_dataset(self):
+        return self._train_dataset
+
+    @property
+    def eval_dataset(self):
+        return self._eval_dataset
+
+
     def hooks(self, mode):
         hooks = []
 
@@ -96,7 +107,10 @@ class Experiment:
         return estimator
 
     def iterator(self, ds):
-        return ds.make_one_shot_iterator().get_next()
+        batch_size = self._hyperparameters.get('batch_size', 64)
+        ds = ds.batch(batch_size)
+        it = ds.make_one_shot_iterator()
+        return it.get_next()
 
     def train(self, steps=2000):
         train_dataset = self._train_dataset
@@ -147,12 +161,6 @@ class Experiment:
                 input_fn=eval_input_fn,
                 throttle_secs=self._eval_secs,
                 steps=eval_steps))
-
-    def visualize_train_dataset(self):
-        visual.plot_sample(self._train_dataset)
-
-    def visualize_eval_dataset(self):
-        visual.plot_sample(self._eval_dataset)
 
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:
