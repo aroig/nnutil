@@ -60,7 +60,9 @@ class TFRecordWriter:
                     self._writer.write(example.SerializeToString())
 
             except tf.errors.OutOfRangeError:
-                return
+                pass
+
+            print("")
 
 
 def tfrecord_writer(path):

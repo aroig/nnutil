@@ -5,24 +5,30 @@ from datetime import datetime
 import tensorflow as tf
 import numpy as np
 
+from .. import visual
 from .. import model
+
 from .tensorboard_profiler_hook import TensorboardProfilerHook
 
 class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None,
-                 hyperparameters=None, resume=False, seed=None, eval_secs=None):
+                 hyperparameters=None, resume=False, seed=None,
+                 eval_secs=None, profile_secs=None):
         if hyperparameters is None:
             hyperparameters = {}
+
         self._model = model
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
         self._hyperparameters = hyperparameters
         self._seed = seed
 
+        self._resume = resume
+
         if eval_secs is None:
             eval_secs = 120
 
-        self._profile_secs = 120
+        self._profile_secs = profile_secs
         self._log_secs = 120
         self._checkpoint_secs = 120
         self._eval_secs = eval_secs
@@ -32,10 +38,12 @@ class Experiment:
         self._name = self._model.name
 
         # Path to the model directory
-        self._path = os.path.abspath(path)
+        self._path = None
+        if path is not None:
+            self._path = os.path.abspath(path)
 
         self._run_timestamp = datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
-        if resume:
+        if self._resume:
             all_runs = []
 
             train_dir = self._path
@@ -45,7 +53,7 @@ class Experiment:
             if len(all_runs) > 0:
                 self._run_timestamp = all_runs[-1]
 
-        if not os.path.exists(self.path):
+        if self._path is not None and not os.path.exists(self.path):
             os.makedirs(self.path)
 
     @property
@@ -56,10 +64,10 @@ class Experiment:
     def model(self):
         return self._model
 
-    def hooks(self, mode, profiling=False):
+    def hooks(self, mode):
         hooks = []
 
-        if profiling and self._profile_secs is not None:
+        if self._profile_secs is not None:
             hooks.append(
                 TensorboardProfilerHook(
                     save_secs=self._log_secs,
@@ -79,23 +87,24 @@ class Experiment:
             keep_checkpoint_max=10,
             log_step_count_steps=self._summary_steps)
 
-        estimator = tf.estimator.Estimator(model_fn=model_fn,
-                                           model_dir=self.path,
-                                           config=config,
-                                           params=self._hyperparameters)
+        estimator = tf.estimator.Estimator(
+            model_fn=model_fn,
+            model_dir=self.path,
+            config=config,
+            params=self._hyperparameters)
 
         return estimator
 
     def iterator(self, ds):
         return ds.make_one_shot_iterator().get_next()
 
-    def train(self, steps=2000, profiling=False):
+    def train(self, steps=2000):
         train_dataset = self._train_dataset
         def input_fn():
            return self.iterator(train_dataset)
 
         estimator = self.estimator('train')
-        hooks = self.hooks('train', profiling=profiling)
+        hooks = self.hooks('train')
 
         estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
 
@@ -110,7 +119,7 @@ class Experiment:
         results = estimator.evaluate(input_fn=input_fn, steps=steps, hooks=hooks, name=name)
         return results
 
-    def train_and_evaluate(self, steps=2000, eval_steps=None, profiling=False):
+    def train_and_evaluate(self, steps=2000, eval_steps=None):
 
         if eval_steps is None:
             eval_steps = 5
@@ -125,7 +134,7 @@ class Experiment:
 
         estimator = self.estimator('train')
         train_hooks = self.hooks('train')
-        evaluation_hooks = self.hooks('eval', profiling=profiling)
+        evaluation_hooks = self.hooks('eval')
 
         tf.estimator.train_and_evaluate(
             estimator,
@@ -138,6 +147,12 @@ class Experiment:
                 input_fn=eval_input_fn,
                 throttle_secs=self._eval_secs,
                 steps=eval_steps))
+
+    def visualize_train_dataset(self):
+        visual.plot_sample(self._train_dataset)
+
+    def visualize_eval_dataset(self):
+        visual.plot_sample(self._eval_dataset)
 
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:
@@ -185,7 +200,7 @@ class Experiment:
 
             tf.train.write_graph(frozen_graph_def, export_path, model_pb, as_text=as_text)
 
-    def plain_export(self, export_path=None, batch_size = 1):
+    def plain_export(self, export_path=None, batch_size=1):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
 
