@@ -13,7 +13,7 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None,
                  hyperparameters=None, resume=False, seed=None,
-                 eval_secs=None, profile_secs=None):
+                 eval_secs=None, profile_secs=None, name=None):
         if hyperparameters is None:
             hyperparameters = {}
 
@@ -36,8 +36,10 @@ class Experiment:
         self._eval_secs = eval_secs
         self._summary_steps = 30
 
-        # TODO: make up a name mixing model and dataset names
-        self._name = self._model.name
+        if name is None:
+            # TODO: mix model and dataset names
+            name = self._model.name
+        self._name = name
 
         # Path to the model directory
         self._path = None
