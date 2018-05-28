@@ -14,15 +14,31 @@ class Experiment:
     def __init__(self, path, model, eval_dataset=None, train_dataset=None,
                  hyperparameters=None, resume=False, seed=None,
                  eval_secs=None, profile_secs=None, name=None):
+
+        default_hyperparameters = {
+            'batch_size': 64,
+            'learning_rate': 0.001,
+            'learning_rate_decay': 1.0,
+            'train_steps': 16000,
+            'eval_steps': 5,
+            'regularizer': 8e-5,
+            'regularizer_step': 200,
+            'sample_bias': 0.0,
+            'sample_bias_step': 200
+        }
+
         if hyperparameters is None:
             hyperparameters = {}
+
+        self._hyperparameters = {}
+        for k, default in default_hyperparameters.items():
+            self._hyperparameters[k] = hyperparameters.get(k, default)
 
         self._model = model
 
         self._train_dataset = train_dataset
         self._eval_dataset = eval_dataset
 
-        self._hyperparameters = hyperparameters
         self._seed = seed
 
         self._resume = resume
@@ -114,7 +130,7 @@ class Experiment:
         it = ds.make_one_shot_iterator()
         return it.get_next()
 
-    def train(self, steps=2000):
+    def train(self):
         train_dataset = self._train_dataset
         def input_fn():
            return self.iterator(train_dataset)
@@ -122,9 +138,12 @@ class Experiment:
         estimator = self.estimator('train')
         hooks = self.hooks('train')
 
-        estimator.train(input_fn=input_fn, steps=steps, hooks=hooks)
+        estimator.train(
+            input_fn=input_fn,
+            steps=self._hyperparameters['train_steps'],
+            hooks=hooks)
 
-    def evaluate(self, steps, name=None):
+    def evaluate(self):
         eval_dataset = self._eval_dataset
         def input_fn():
             return self.iterator(eval_dataset)
@@ -132,14 +151,14 @@ class Experiment:
         estimator = self.estimator('eval')
         hooks = self.hooks('eval')
 
-        results = estimator.evaluate(input_fn=input_fn, steps=steps, hooks=hooks, name=name)
+        results = estimator.evaluate(
+            input_fn=input_fn,
+            steps=self._hyperparameters['eval_steps'],
+            hooks=hooks)
+
         return results
 
-    def train_and_evaluate(self, steps=2000, eval_steps=None):
-
-        if eval_steps is None:
-            eval_steps = 5
-
+    def train_and_evaluate(self):
         train_dataset = self._train_dataset
         def train_input_fn():
             return self.iterator(train_dataset)
@@ -157,12 +176,12 @@ class Experiment:
             tf.estimator.TrainSpec(
                 hooks=train_hooks,
                 input_fn=train_input_fn,
-                max_steps=steps),
+                max_steps=self._hyperparameters['train_steps']),
             tf.estimator.EvalSpec(
                 hooks=evaluation_hooks,
                 input_fn=eval_input_fn,
                 throttle_secs=self._eval_secs,
-                steps=eval_steps))
+                steps=self._hyperparameters['eval_steps']))
 
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:

@@ -116,6 +116,8 @@ class ClassificationModel(BaseModel):
 
     def training_estimator_spec(self, loss, image, labels, logits, params, config):
         step = tf.train.get_global_step()
+
+        max_steps = params.get('train_steps', None)
         learning_rate = params.get('learning_rate', 0.001)
         learning_rate_decay = params.get('learning_rate_decay', 1.0)
 
