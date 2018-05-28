@@ -22,7 +22,7 @@ class WGANModel(BaseModel):
         self._critic = None
 
     @property
-    def shape(self):
+    def input_shape(self):
         return self._shape
 
     def features_placeholder(self, batch_size=1):
