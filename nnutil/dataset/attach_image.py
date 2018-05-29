@@ -3,6 +3,7 @@ import numpy as np
 import multiprocessing
 
 from .crop_image import crop_image
+from ..image import to_rgb, to_grayscale
 
 class AttachImage(tf.data.Dataset):
     def __init__(self, dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None):
@@ -79,16 +80,10 @@ class AttachImage(tf.data.Dataset):
 
         if self._shape is not None:
             if self._shape[2] == 1:
-                image = tf.cond(
-                    tf.equal(tf.shape(image)[2], 1),
-                    lambda: image,
-                    lambda: tf.image.rgb_to_grayscale(image))
+                image = to_grayscale(image)
 
             elif self._shape[2] == 3:
-                image = tf.cond(
-                    tf.equal(tf.shape(image)[2], 3),
-                    lambda: image,
-                    lambda: tf.image.grayscale_to_rgb(image))
+                image = to_rgb(image)
 
             image = tf.image.resize_images(
                 image,
