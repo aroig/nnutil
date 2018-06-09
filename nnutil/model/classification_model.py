@@ -7,6 +7,7 @@ from .. import summary
 from .. import layers
 from .. import train
 from .. import util
+from .. import image
 
 from .base_model import BaseModel
 
@@ -94,7 +95,7 @@ class ClassificationModel(BaseModel):
         label_rel = metrics['label_rel']
 
         if (len(self.labels) < 40 and int(shape[-1]) in set([1, 3])):
-            mosaic = util.confusion_mosaic(image, len(self.labels), labels, prediction)
+            mosaic = image.confusion_mosaic(image, len(self.labels), labels, prediction)
             tf.summary.image("confusion_mosaic", mosaic)
 
         tf.summary.image('confusion',

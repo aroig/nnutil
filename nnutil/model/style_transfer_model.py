@@ -7,6 +7,7 @@ from .. import summary
 from .. import layers
 from .. import train
 from .. import util
+from .. import image
 
 from .base_model import BaseModel
 
@@ -167,7 +168,9 @@ class StyleTransferModel(BaseModel):
             loss += sum([l for l in self._synth_classifier.losses])
             loss += sum([l for l in self._transformer.losses])
 
-        tf.summary.image("synth", util.mosaic(tf.stack([image[0,...], synth[0,...]])))
+        image_matrix = tf.stack([image[0,...], synth[0,...]])
+        image_matrix = tf.expand_dims(image_matrix, axis=0)
+        tf.summary.image("synth", image.mosaic(image_matrix))
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
