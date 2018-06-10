@@ -2,12 +2,7 @@ import os
 
 import numpy as np
 import tensorflow as tf
-
-from .. import summary
-from .. import layers
-from .. import train
-from .. import util
-from .. import image
+import nnutil as nn
 
 from .base_model import BaseModel
 
@@ -95,8 +90,8 @@ class ClassificationModel(BaseModel):
         label_rel = metrics['label_rel']
 
         if (len(self.labels) < 40 and int(shape[-1]) in set([1, 3])):
-            mosaic = image.confusion_mosaic(image, len(self.labels), labels, prediction)
-            tf.summary.image("confusion_mosaic", mosaic)
+            mosaic = nn.image.confusion_mosaic(image, len(self.labels), labels, prediction)
+            tf.summary.image("confusion_mosaic", tf.expand_dims(mosaic, axis=0))
 
         tf.summary.image('confusion',
                          tf.reshape(confusion_rel, shape=(1, len(self.labels), len(self.labels), 1)))
@@ -113,7 +108,7 @@ class ClassificationModel(BaseModel):
 
         with tf.name_scope("class_distribution"):
             for i, lb in enumerate(self.labels):
-                summary.distribution(lb, confusion[i, :])
+                nn.summary.distribution(lb, confusion[i, :])
 
     def training_estimator_spec(self, loss, image, labels, logits, params, config):
         step = tf.train.get_global_step()
@@ -151,9 +146,9 @@ class ClassificationModel(BaseModel):
             train_op = optimizer.apply_gradients(gradients, global_step=step)
 
         if int(image.shape[-1]) in set([1, 3]):
-            summary.activation_map("activation_summary", logits, image)
+            nn.summary.activation_map("activation_summary", logits, image)
 
-        summary.layers("layer_summary_{}".format(self._classifier.name),
+        nn.summary.layers("layer_summary_{}".format(self._classifier.name),
                        layers=self._classifier.layers,
                        gradients=gradients,
                        activations=self._classifier.layer_activations)
@@ -185,7 +180,7 @@ class ClassificationModel(BaseModel):
 
         self.classification_summaries(image, labels, metrics, confusion_avg)
 
-        summary.pr_curve("prcurve", probs, labels, label_names=self.labels, streaming=True)
+        nn.summary.pr_curve("prcurve", probs, labels, label_names=self.labels, streaming=True)
 
         # Make sure we run update averages on each training step
         extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -194,7 +189,7 @@ class ClassificationModel(BaseModel):
 
         eval_dir = os.path.join(config.model_dir, "eval")
         evaluation_hooks.append(
-            train.EvalSummarySaverHook(
+            nn.train.EvalSummarySaverHook(
                 output_dir=eval_dir,
                 summary_op=tf.summary.merge_all()
             )
@@ -272,7 +267,7 @@ class ClassificationModel(BaseModel):
 
         training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-        self._classifier = layers.Segment(self.classifier_network(params), name="classifier")
+        self._classifier = nn.layers.Segment(self.classifier_network(params), name="classifier")
         logits = self._classifier.apply(image, training=training)
 
         if mode == tf.estimator.ModeKeys.PREDICT:
