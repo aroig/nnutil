@@ -13,6 +13,9 @@ import tensorflow as tf
 
 def mosaic(image_matrix, name=None, border=None):
     """ image_matrix: (row, col, height, width, channels)"""
+    assert(len(image_matrix.shape) == 5)
+    assert(image_matrix.shape[-1] == 3)
+
     if name is None:
         name = "Mosaic"
 
@@ -21,11 +24,31 @@ def mosaic(image_matrix, name=None, border=None):
         mosaic_shape = shape[0:2]
         image_shape = shape[2:5]
 
-        image_array = tf.reshape(image_matrix, shape=(-1,) + image_shape)
-        mosaic = tf.transpose(image_array, perm=[0, 2, 1, 3, 4])
+        color=[1, 0, 0]
+        width = 1
+        if border is not None:
+            padding = tf.constant(color, shape=(1, 1, 1, 1, 3), dtype=tf.float32)
 
+            padding_height = tf.tile(padding, multiples=(shape[0], shape[1], width, shape[3], 1))
+            image_matrix = tf.concat([image_matrix, padding_height], axis=2)
+
+            padding_width = tf.tile(padding, multiples=(shape[0], shape[1], shape[2]+width, width, 1))
+
+            image_matrix = tf.concat([image_matrix, padding_width], axis=3)
+
+        mosaic = tf.transpose(image_matrix, perm=[0, 2, 1, 3, 4])
         shape = tf.shape(mosaic)
-        mosaic = tf.reshape(mosaic, shape=(1, shape[0] * shape[1], shape[2] * shape[3], shape[4]))
+
+        mosaic = tf.reshape(mosaic, shape=(shape[0] * shape[1], shape[2] * shape[3], shape[4]))
+        shape = tf.shape(mosaic)
+
+        if border is not None:
+            padding = tf.constant(color, shape=(1, 1, 3), dtype=tf.float32)
+            padding_height = tf.tile(padding, multiples=(width, shape[1], 1))
+            padding_width = tf.tile(padding, multiples=(shape[0] + width, width, 1))
+
+            mosaic = tf.concat([padding_height, mosaic], axis=0)
+            mosaic = tf.concat([padding_width, mosaic], axis=1)
 
     return mosaic
 
@@ -53,7 +76,7 @@ def batch_mosaic(image, aspect_ratio=None, name=None):
         shape = tuple(image.shape)[1:]
         image_matrix = tf.reshape(padded_img, shape=(nrows, ncols) + shape)
 
-        return mosaic(image_matrix)
+        return mosaic(image_matrix, border=True)
 
 
 def confusion_mosaic(image, nlabels, labels, predictions, name=None):
@@ -76,4 +99,4 @@ def confusion_mosaic(image, nlabels, labels, predictions, name=None):
 
         image_matrix = tf.gather_nd(image_ex, tf.expand_dims(unique_indexes, axis=-1))
 
-        return mosaic(image_matrix)
+        return mosaic(image_matrix, border=True)
