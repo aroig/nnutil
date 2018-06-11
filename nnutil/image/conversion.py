@@ -16,7 +16,7 @@ def to_rgb(image):
     shape = tf.shape(image)
     image_shape = shape[-3:]
 
-    image_array = tf.reshape(image, shape=(-1) + image_shape)
+    image_array = tf.reshape(image, shape=(-1, image_shape[0], image_shape[1], image_shape[2]))
 
     image_rgb = tf.cond(
         tf.equal(image_shape[-1], 3),
@@ -31,7 +31,7 @@ def to_grayscale(image):
     shape = tf.shape(image)
     image_shape = shape[-3:]
 
-    image_array = tf.reshape(image, shape=(-1) + image_shape)
+    image_array = tf.reshape(image, shape=(-1, image_shape[0], image_shape[1], image_shape[2]))
 
     image_grey = tf.cond(
         tf.equal(image_shape[-1], 1),
