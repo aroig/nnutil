@@ -153,6 +153,13 @@ class MosaicWindow:
         self._dataset = dataset
         self._selected = None
 
+        # Assert that we get batches.
+        # NOTE: unfortunately, we cannot obtain the batch size statically
+        count = 0
+        for k, v in dataset.output_shapes.items():
+            if (len(v) == 0):
+                raise Exception("Input dataset does not contain batches")
+
         it = self._dataset.make_one_shot_iterator()
         self._feature = it.get_next()
 
