@@ -13,6 +13,11 @@ import tensorflow as tf
 
 def mosaic(image_matrix, name=None, border=None):
     """ image_matrix: (row, col, height, width, channels)"""
+
+    # Make it a matrix with one row
+    if len(image_matrix.shape) == 4:
+        image_matrix = tf.expand_dims(image_matrix, axis=0)
+
     assert(len(image_matrix.shape) == 5)
     assert(image_matrix.shape[-1] == 3)
 
