@@ -156,6 +156,9 @@ class MosaicWindow:
         # Assert that we get batches.
         # NOTE: unfortunately, we cannot obtain the batch size statically
         count = 0
+        if type(dataset.output_shapes) != dict:
+            raise Exception("Unknown output_shapes type")
+
         for k, v in dataset.output_shapes.items():
             if (len(v) == 0):
                 raise Exception("Input dataset does not contain batches")
