@@ -62,6 +62,10 @@ class MosaicItem:
             edgecolor='red'))
 
     def _draw_image(self, image):
+        # if rank == 2 assume 1 channel
+        if len(image.shape) == 2:
+            image = np.expand_dims(image, axis=-1)
+
         shape = image.shape
 
         if len(shape) != 3:
