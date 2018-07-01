@@ -15,3 +15,4 @@ from .attach_image import *
 from .attach_raw import *
 from .tfrecord import *
 from .crop_image import *
+from .as_generator import *
