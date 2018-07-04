@@ -5,13 +5,16 @@ import multiprocessing
 from .crop_image import crop_image
 from ..image import to_rgb, to_grayscale
 
+
 class AttachImage(tf.data.Dataset):
-    def __init__(self, dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None):
+    def __init__(self, dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None, standardize=False):
         self._shape = shape
-        self._parallel = int (0.8 * multiprocessing.cpu_count())
+        self._parallel = int (0.5 * multiprocessing.cpu_count())
 
         if image_key is None:
             image_key = 'image'
+
+        self._standardize = standardize
 
         self._image_key = image_key
         self._shape_key = shape_key
@@ -75,9 +78,6 @@ class AttachImage(tf.data.Dataset):
         image = tf.image.decode_image(data)
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
 
-        # NOTE: some ops like resize_image or rotate need a static rank.
-        image.set_shape([None, None, None])
-
         if self._shape is not None:
             if self._shape[2] == 1:
                 image = to_grayscale(image)
@@ -85,11 +85,17 @@ class AttachImage(tf.data.Dataset):
             elif self._shape[2] == 3:
                 image = to_rgb(image)
 
+            # resize_image wants a static shape, but the kernel does
+            # not seem to use it. Let's fake it.
+            image.set_shape([None, None, None])
             image = tf.image.resize_images(
                 image,
                 size=self._shape[0:2],
                 method=tf.image.ResizeMethod.BILINEAR)
             image.set_shape(self._shape)
+
+            if self._standardize:
+                image = tf.image.per_image_standardization(image)
 
         feature[self._image_key] = image
 
@@ -99,7 +105,7 @@ class AttachImage(tf.data.Dataset):
         return feature
 
 
-def attach_image(dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None):
+def attach_image(dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None, standardize=False):
     return AttachImage(
         dataset,
         shape,
@@ -107,4 +113,5 @@ def attach_image(dataset, shape, image_key=None, shape_key=None, image_path=None
         shape_key=shape_key,
         image_path=image_path,
         image_src=image_src,
-        crop_window=crop_window)
+        crop_window=crop_window,
+        standardize=standardize)

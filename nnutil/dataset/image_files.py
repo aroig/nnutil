@@ -6,7 +6,7 @@ import numpy as np
 from .attach_image import attach_image
 
 class ImageFiles(tf.data.Dataset):
-    def __init__(self, directory, shape, glob='*', image_key=None, shuffle=True):
+    def __init__(self, directory, shape, glob='*', shuffle=True, **kwargs):
         """shape: (height, width, channels)"""
         self._directory = os.path.realpath(directory)
         self._glob = glob
@@ -21,9 +21,8 @@ class ImageFiles(tf.data.Dataset):
         dataset = attach_image(
             dataset,
             self._shape,
-            image_key=image_key,
             image_path='path',
-            shape_key='shape')
+            **kwargs)
 
         self._dataset = dataset
 
@@ -42,5 +41,5 @@ class ImageFiles(tf.data.Dataset):
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
 
-def image_files(directory, shape, glob='*', image_key=None, shuffle=True):
+def image_files(directory, shape, glob='*', shuffle=True, **kwargs):
     return ImageFiles(directory, shape, glob=glob, image_key=image_key, shuffle=shuffle)
