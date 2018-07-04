@@ -2,18 +2,23 @@ import tensorflow as tf
 import numpy as np
 
 class MutateWindow(tf.data.Dataset):
-    def __init__(self, dataset, window_key=None,
-                 scale=None, keep_aspect=False, xoffset=None, yoffset=None, seed=None):
+    def __init__(self, dataset, window_key=None, angle_key=None,
+                 scale=None, keep_aspect=False, xoffset=None, yoffset=None, seed=None, rotate=None):
 
         if window_key is None:
             window_key = 'window'
         self._window_key = window_key
+
+        if angle_key is None:
+            angle_key = 'angle'
+        self._angle_key = angle_key
 
         self._seed = seed
 
         self._scale = self._make_multiplicative_range(scale)
         self._xoffset = self._make_additive_range(xoffset)
         self._yoffset = self._make_additive_range(yoffset)
+        self._rotate = self._make_additive_range(rotate)
 
         self._keep_aspect = keep_aspect
 
@@ -106,14 +111,20 @@ class MutateWindow(tf.data.Dataset):
 
         feature[self._window_key] = mutated_window
 
+        if self._rotate is not None:
+            angle = feature.get(self._angle_key, tf.constant(0, dtype=tf.float32))
+            delta = tf.random_uniform((), minval=self._rotate[0], maxval=self._rotate[1], dtype=tf.float32, seed=self._seed)
+            feature[self._angle_key] = angle + delta
+
         return feature
 
 
-def mutate_window(dataset, window_key=None, scale=None, keep_aspect=False, xoffset=None, yoffset=None, seed=None):
+def mutate_window(dataset, window_key=None, angle_key=None, scale=None, keep_aspect=False, xoffset=None, yoffset=None, rotate=None, seed=None):
     return MutateWindow(dataset,
                         window_key=window_key,
                         scale=scale,
                         keep_aspect=keep_aspect,
                         xoffset=xoffset,
                         yoffset=yoffset,
+                        rotate=rotate,
                         seed=seed)
