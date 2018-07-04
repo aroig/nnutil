@@ -4,7 +4,11 @@ import numpy as np
 from .merge import merge
 from .interleave import interleave
 
-def labelled(datasets, label_key=None, label_str_key=None):
+def labelled(datasets, label_key=None, label_str_key=None, weights=None, seed=None):
+
+    if weights is None:
+        weights = {}
+
     merged_datasets = []
     for idx, (lb, ds) in enumerate(datasets.items()):
 
@@ -20,6 +24,14 @@ def labelled(datasets, label_key=None, label_str_key=None):
 
         label_ds = label_ds.repeat()
 
-        merged_datasets.append(merge([ds, label_ds]))
+        merged_ds = merge([ds, label_ds])
+        merged_ds = merged_ds.repeat()
 
-    return interleave(merged_datasets)
+        merged_datasets.append(merged_ds)
+
+    sample_dataset = tf.contrib.data.sample_from_datasets(
+       merged_datasets,
+       weights=[weights.get(lb, 1.0) for lb in datasets.keys()],
+       seed=seed)
+
+    return sample_dataset
