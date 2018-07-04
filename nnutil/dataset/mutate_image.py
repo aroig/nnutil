@@ -14,7 +14,7 @@ class MutateImage(tf.data.Dataset):
         self._image_key = image_key
 
         self._seed = seed
-        self._parallel = int (0.8 * multiprocessing.cpu_count())
+        self._parallel = int (0.5 * multiprocessing.cpu_count())
 
         self._brightness = brightness
         self._hue = hue
@@ -102,13 +102,13 @@ class MutateImage(tf.data.Dataset):
             angle = (2 * math.pi / 360) * tf.random_uniform((), minval=self._rotate[0], maxval=self._rotate[1], dtype=tf.float32)
 
             # NOTE: We rotate a standardized image, so that the padding is done with a value that becomes zero
-            mu, variance = tf.nn.moments(image, axes=[0, 1, 2])
-            norm_image = tf.image.per_image_standardization(image)
+            mu, variance = tf.nn.moments(image, axes=[-3, -2, -1])
+            epsilon = 1e-4
+            sigma = tf.sqrt(variance) + epsilon
+            norm_image = (image - mu) / sigma
 
             norm_image = tf.contrib.image.rotate(norm_image, angle, interpolation='BILINEAR')
-
-            image = tf.clip_by_value(mu + tf.sqrt(variance) * norm_image, 0.0, 1.0)
-
+            image = tf.clip_by_value(mu + sigma * norm_image, 0.0, 1.0)
 
         if self._gaussian_noise is not None:
             sigma = tf.random_uniform(
@@ -116,7 +116,7 @@ class MutateImage(tf.data.Dataset):
                 minval=self._gaussian_noise[0],
                 maxval=self._gaussian_noise[1],
                 dtype=tf.float32)
-            noise = tf.random_normal(tf.shape(image), mean=0, stddev=sigma)
+            noise = tf.random_normal(image.shape, mean=0, stddev=sigma)
             image = image + noise
 
         if self._impulse_noise is not None:
@@ -128,7 +128,7 @@ class MutateImage(tf.data.Dataset):
             dist = tf.distributions.Categorical(
                 probs=[0.5*prob, 1 - prob, 0.5*prob],
                 dtype=tf.float32)
-            noise = dist.sample(tf.shape(image)) - 1
+            noise = dist.sample(image.shape) - 1
             image = image + noise
 
         feature[self._image_key] = tf.clip_by_value(image, 0.0, 1.0)
