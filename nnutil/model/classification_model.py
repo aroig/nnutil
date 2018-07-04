@@ -117,8 +117,10 @@ class ClassificationModel(BaseModel):
         learning_rate = params.get('learning_rate', 0.001)
         learning_rate_decay = params.get('learning_rate_decay', 1.0)
 
+        assert(learning_rate_decay == 1.0 or max_steps is not None)
+
         with tf.name_scope('optimizer'):
-            learning_rate = learning_rate * tf.exp(tf.cast(step, dtype=tf.float32) * tf.log(learning_rate_decay))
+            learning_rate *= tf.exp(tf.log(learning_rate_decay) / tf.cast(max_steps, dtype=tf.float32))
 
             ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
             optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
