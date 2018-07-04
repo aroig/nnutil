@@ -11,8 +11,12 @@
 
 import tensorflow as tf
 
+from .conversion import to_rgb
+
 def mosaic(image_matrix, name=None, border=None):
     """ image_matrix: (row, col, height, width, channels)"""
+
+    image_matrix = to_rgb(image_matrix)
 
     # Make it a matrix with one row
     if len(image_matrix.shape) == 4:
