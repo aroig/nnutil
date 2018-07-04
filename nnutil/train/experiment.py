@@ -20,11 +20,11 @@ class Experiment:
             'learning_rate': 0.001,
             'learning_rate_decay': 1.0,
             'train_steps': 16000,
-            'eval_steps': 5,
-            'regularizer': 8e-5,
-            'regularizer_step': 200,
+            'eval_steps': 10,
+            'regularizer': 0.0,
+            'regularizer_step': 1000,
             'sample_bias': 0.0,
-            'sample_bias_step': 200
+            'sample_bias_step': 1000
         }
 
         if hyperparameters is None:
