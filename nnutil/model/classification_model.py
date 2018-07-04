@@ -116,16 +116,24 @@ class ClassificationModel(BaseModel):
         max_steps = params.get('train_steps', None)
         learning_rate = params.get('learning_rate', 0.001)
         learning_rate_decay = params.get('learning_rate_decay', 1.0)
+        momentum = params.get('momentum', 0.9)
 
         assert(learning_rate_decay == 1.0 or max_steps is not None)
 
         with tf.name_scope('optimizer'):
-            learning_rate *= tf.exp(tf.log(learning_rate_decay) / tf.cast(max_steps, dtype=tf.float32))
+            learning_rate *= tf.exp(tf.log(learning_rate_decay) * tf.cast(step, dtype=tf.float32) / tf.cast(max_steps, dtype=tf.float32))
 
             ema = tf.train.ExponentialMovingAverage(decay=0.85, name="ema_train")
-            optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
-            # Manually apply gradients. We want the gradients for summaries.
+            # NOTE: Adam converges quite fast but to lower quality optima. In general use Adam for prototyping and
+            # Momentum SGD for the final training.
+
+            # WARNING! Momentum SGD requires a much more delicate hyperparameter tuning!
+
+            # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
+
+            # NOTE: Manually apply gradients. We want the gradients for summaries.
             # We need to apply them manually in order to avoid having
             # duplicate gradient ops.
             gradients = optimizer.compute_gradients(loss)

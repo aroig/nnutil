@@ -19,6 +19,7 @@ class Experiment:
             'batch_size': 64,
             'learning_rate': 0.001,
             'learning_rate_decay': 1.0,
+            'momentum': 0.9,
             'train_steps': 16000,
             'eval_steps': 10,
             'regularizer': 0.0,
@@ -126,7 +127,7 @@ class Experiment:
 
     def iterator(self, ds):
         batch_size = self._hyperparameters.get('batch_size', 64)
-        ds = ds.batch(batch_size)
+        ds = ds.batch(batch_size).prefetch(1)
         it = ds.make_one_shot_iterator()
         return it.get_next()
 
