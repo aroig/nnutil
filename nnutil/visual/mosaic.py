@@ -100,11 +100,14 @@ class MosaicItem:
         if val is None:
             return None
 
-        val = np.asscalar(val)
         if type(val) == bytes:
             return val.decode()
-        elif type(val) == int:
+
+        if type(val) == str:
             return val
+
+        elif type(val) == int or type(val) == np.ndarray:
+            return np.asscalar(val)
         else:
             return None
 
@@ -156,16 +159,6 @@ class MosaicWindow:
         self._sess = sess
         self._dataset = dataset
         self._selected = None
-
-        # Assert that we get batches.
-        # NOTE: unfortunately, we cannot obtain the batch size statically
-        count = 0
-        if type(dataset.output_shapes) != dict:
-            raise Exception("Unknown output_shapes type")
-
-        for k, v in dataset.output_shapes.items():
-            if (len(v) == 0):
-                raise Exception("Input dataset does not contain batches")
 
         it = self._dataset.make_one_shot_iterator()
         self._feature = it.get_next()
@@ -278,6 +271,8 @@ class MosaicWindow:
                 masked_path = json_path + '_'
                 if os.path.exists(json_path):
                     print("mask: {}".format(json_path))
+                    if os.path.exists(masked_path):
+                        os.remove(masked_path)
                     os.rename(json_path, masked_path)
 
         elif event.key == 'u':
@@ -287,7 +282,8 @@ class MosaicWindow:
                 masked_path = json_path + '_'
                 if os.path.exists(masked_path):
                     print("unmask: {}".format(masked_path))
-                    os.rename(masked_path, json_path)
+                    if not os.path.exists(json_path):
+                        os.rename(masked_path, json_path)
 
     def onclick(self, event):
         for i, item in enumerate(self._items):
