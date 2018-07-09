@@ -45,7 +45,9 @@ class TFRecordWriter:
         dataset = dataset.prefetch(buffer_size=100)
 
         with tf.Session() as sess:
-            it = dataset.make_one_shot_iterator()
+            it = dataset.make_initializable_iterator()
+            sess.run(it.initializer)
+
             x = it.get_next()
 
             try:

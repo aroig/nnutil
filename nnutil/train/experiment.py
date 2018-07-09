@@ -11,7 +11,7 @@ from .. import model
 from .tensorboard_profiler_hook import TensorboardProfilerHook
 
 class Experiment:
-    def __init__(self, path, model, eval_dataset=None, train_dataset=None,
+    def __init__(self, path, model, eval_dataset_fn=None, train_dataset_fn=None,
                  hyperparameters=None, resume=False, seed=None,
                  eval_secs=None, profile_secs=None, name=None):
 
@@ -37,8 +37,8 @@ class Experiment:
 
         self._model = model
 
-        self._train_dataset = train_dataset
-        self._eval_dataset = eval_dataset
+        self._train_dataset_fn = train_dataset_fn
+        self._eval_dataset_fn = eval_dataset_fn
 
         self._seed = seed
 
@@ -85,15 +85,6 @@ class Experiment:
     def model(self):
         return self._model
 
-    @property
-    def train_dataset(self):
-        return self._train_dataset
-
-    @property
-    def eval_dataset(self):
-        return self._eval_dataset
-
-
     def hooks(self, mode):
         hooks = []
 
@@ -125,48 +116,36 @@ class Experiment:
 
         return estimator
 
-    def iterator(self, ds):
-        batch_size = self._hyperparameters.get('batch_size', 64)
-        ds = ds.batch(batch_size).prefetch(1)
-        it = ds.make_one_shot_iterator()
-        return it.get_next()
-
     def train(self):
-        train_dataset = self._train_dataset
-        def input_fn():
-           return self.iterator(train_dataset)
+        train_steps = self._hyperparameters.get('train_steps', 1000)
+        batch_size = self._hyperparameters.get('batch_size', 64)
 
         estimator = self.estimator('train')
         hooks = self.hooks('train')
 
         estimator.train(
-            input_fn=input_fn,
-            steps=self._hyperparameters['train_steps'],
+            input_fn=lambda: self._train_dataset_fn().batch(batch_size).prefetch(1),
+            steps=train_steps,
             hooks=hooks)
 
     def evaluate(self):
-        eval_dataset = self._eval_dataset
-        def input_fn():
-            return self.iterator(eval_dataset)
+        eval_steps = self._hyperparameters.get('eval_steps', 10)
+        batch_size = self._hyperparameters.get('batch_size', 64)
 
         estimator = self.estimator('eval')
         hooks = self.hooks('eval')
 
         results = estimator.evaluate(
-            input_fn=input_fn,
-            steps=self._hyperparameters['eval_steps'],
+            input_fn=lambda: self._eval_dataset_fn().batch(batch_size).prefetch(1),
+            steps=eval_steps,
             hooks=hooks)
 
         return results
 
     def train_and_evaluate(self):
-        train_dataset = self._train_dataset
-        def train_input_fn():
-            return self.iterator(train_dataset)
-
-        eval_dataset = self._eval_dataset
-        def eval_input_fn():
-            return self.iterator(eval_dataset)
+        train_steps = self._hyperparameters.get('train_steps', 1000)
+        eval_steps = self._hyperparameters.get('eval_steps', 10)
+        batch_size = self._hyperparameters.get('batch_size', 64)
 
         estimator = self.estimator('train')
         train_hooks = self.hooks('train')
@@ -176,13 +155,13 @@ class Experiment:
             estimator,
             tf.estimator.TrainSpec(
                 hooks=train_hooks,
-                input_fn=train_input_fn,
-                max_steps=self._hyperparameters['train_steps']),
+                input_fn=lambda: self._train_dataset_fn().batch(batch_size).prefetch(1),
+                max_steps=train_steps),
             tf.estimator.EvalSpec(
                 hooks=evaluation_hooks,
-                input_fn=eval_input_fn,
+                input_fn=lambda: self._eval_dataset_fn().batch(batch_size).prefetch(1),
                 throttle_secs=self._eval_secs,
-                steps=self._hyperparameters['eval_steps']))
+                steps=eval_steps))
 
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:

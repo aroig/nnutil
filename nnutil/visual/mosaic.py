@@ -160,7 +160,9 @@ class MosaicWindow:
         self._dataset = dataset
         self._selected = None
 
-        it = self._dataset.make_one_shot_iterator()
+        it = self._dataset.make_initializable_iterator()
+        sess.run(it.initializer)
+
         self._feature = it.get_next()
 
         self._image_fn = image_fn

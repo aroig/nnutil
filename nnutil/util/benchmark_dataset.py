@@ -10,7 +10,9 @@ def benchmark_dataset(dataset):
     with tf.Session() as sess:
         # feature = tf.contrib.data.get_single_element(dataset)
 
-        it = dataset.make_one_shot_iterator()
+        it = dataset.make_initializable_iterator()
+        sess.run(it.initializer)
+
         feature = it.get_next()
 
         # feature = gen_dataset_ops.dataset_to_single_element(

@@ -11,8 +11,11 @@ def print_sample(dataset):
     pp = pprint.PrettyPrinter(indent=4)
 
     with tf.Session() as sess:
-        it = dataset.make_one_shot_iterator()
+        it = dataset.make_initializable_iterator()
+        sess.run(it.initializer)
+
         feature = it.get_next()
+
         try:
             while True:
                 flat = nest.flatten(feature)
