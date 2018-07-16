@@ -3,20 +3,19 @@ import inspect
 import tensorflow as tf
 import numpy as np
 
-from ..math import approximate_identity
-
 class Segment(tf.layers.Layer):
-    def __init__(self, layers, residual=False, activation=None, activity_regularizer=None,
-                 trainable=True, name=None, **kwargs):
-        super(Segment, self).__init__(trainable=trainable,
-                                      name=name,
-                                      activity_regularizer=activity_regularizer,
-                                      **kwargs)
+    def __init__(self, layers, activation=None, **kwargs):
+        super(Segment, self).__init__(**kwargs)
 
-        self._residual = residual
         self._activation = activation
         self._layers = layers
         self._outputs = None
+
+    def _compose(self, l, x, kwargs):
+        sig = [p.name for p in inspect.signature(l.call).parameters.values()]
+        args = {k: kwargs[k] for k in set(sig) & set(kwargs.keys())}
+        y = l.apply(x, **args)
+        return y
 
     @property
     def layers(self):
@@ -82,16 +81,6 @@ class Segment(tf.layers.Layer):
         return self._outputs
 
     def build(self, input_shape):
-        shape = input_shape
-
-        for l in self._layers:
-            # NOTE: do not call l.build(shape) here because it will get placed in the wrong scope.
-            # Let it happen lazily when doing l.apply(...)
-            shape = l.compute_output_shape(shape)
-
-        if self._residual:
-            assert(input_shape.ndims == shape.ndims)
-
         super(Segment, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -99,17 +88,10 @@ class Segment(tf.layers.Layer):
         self._outputs = [x]
 
         for l in self._layers:
-            sig = [p.name for p in inspect.signature(l.call).parameters.values()]
-
-            args = {k: kwargs[k] for k in set(sig) & set(kwargs.keys())}
-            x = l.apply(x, **args)
+            x = self._compose(l, x, kwargs)
             self._outputs.append(x)
 
-        if self._residual:
-            shape = x.shape.as_list()
-            output = approximate_identity(inputs, shape) + x
-        else:
-            output = x
+        output = x
 
         if self._activation is not None:
             output = self._activation(output)

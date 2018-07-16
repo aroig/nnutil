@@ -1,11 +1,11 @@
 import tensorflow as tf
-from .segment import Segment
+from .residual import Residual
 from .depthwise_conv import DepthwiseConv2D
 
-class Bottleneck2D(Segment):
+class Bottleneck2D(Residual):
     def __init__(self, filters=None, kernel_size=None, strides=None, padding="same",
                  data_format="channels_last", depth_multiplier=1, activation=None,
-                 kernel_regularizer=None, activity_regularizer=None, residual=False):
+                 kernel_regularizer=None, activity_regularizer=None):
 
         super(Bottleneck2D, self).__init__(layers=[
             tf.layers.Conv2D(filters=depth_multiplier * filters,
@@ -32,7 +32,7 @@ class Bottleneck2D(Segment):
                              kernel_regularizer=kernel_regularizer,
                              activity_regularizer=activity_regularizer,
                              activation=None)
-        ], residual=residual, activation=None)
+        ], activation=None)
 
         self._filters = filters
         self._kernel_size = kernel_size

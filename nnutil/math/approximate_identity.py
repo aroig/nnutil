@@ -83,10 +83,13 @@ def approximate_identity(x, shape):
 
     assert(len(input_shape) == len(output_shape))
 
-    if (len(input_shape) == 3):
-        x = _approximate_identity_2d(x, input_shape, output_shape)
+    if input_shape == output_shape:
+        y = x
+
+    elif (len(input_shape) == 3):
+        y = _approximate_identity_2d(x, input_shape, output_shape)
+
     else:
-        x = _approximate_identity_nd(x, input_shape, output_shape)
+        y = _approximate_identity_nd(x, input_shape, output_shape)
 
-    return x
-
+    return y
