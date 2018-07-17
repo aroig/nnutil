@@ -8,7 +8,7 @@ def slice_axis(x, rg, axis=0):
     assert(0 <= axis)
     assert(axis < rank)
 
-    size = x.shape[axis]
+    size = x.shape.as_list()[axis]
     if size is None:
         raise Exception("Slicing dimension must be statically known")
 
