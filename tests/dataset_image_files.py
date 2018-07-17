@@ -23,7 +23,7 @@ class Dataset_ImageFiles(unittest.TestCase):
             np.testing.assert_array_almost_equal(
                 data[0][..., i],
                 np.array([[1, 0], [0, 1], [1, 1]]),
-                decimal=5)
+                decimal=4)
 
     def test_dataset_image_files_bmp_2(self):
         tf.set_random_seed(42)
@@ -40,7 +40,7 @@ class Dataset_ImageFiles(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             data[0][..., 0],
             np.array([[1, 0], [0, 1], [1, 1]]),
-            decimal=5)
+            decimal=4)
 
     def test_dataset_image_files_bmp_3(self):
         tf.set_random_seed(42)
@@ -58,13 +58,13 @@ class Dataset_ImageFiles(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             data[0][..., 0],
             np.array([[1, 1], [1, 1], [1, 1]]),
-            decimal=5)
+            decimal=4)
 
         for i in range(1, 3):
             np.testing.assert_array_almost_equal(
                 data[0][..., i],
                 np.array([[1, 0], [0, 1], [1, 1]]),
-                decimal=5)
+                decimal=4)
 
     def test_dataset_image_files_jpg(self):
         tf.set_random_seed(42)
