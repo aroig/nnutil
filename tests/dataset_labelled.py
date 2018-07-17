@@ -14,15 +14,15 @@ class Dataset_Labelled(unittest.TestCase):
 
         ds2 = tf.data.Dataset.from_tensor_slices({"value": tf.constant([10, 20, 30], dtype=tf.int32)})
 
-        ds = nl.dataset.labelled({ "a": ds1, "b": ds2 }, label_str_key="label")
+        ds = nl.dataset.labelled({ "a": ds1, "b": ds2 }, label_str_key="label", seed=42)
 
         with tf.Session() as sess:
             it = ds.make_one_shot_iterator()
             feature = it.get_next()
 
             data = sess.run([feature['value'], feature['label']])
-            self.assertEqual(10, data[0])
-            self.assertEqual("b", data[1].decode())
+            self.assertEqual(1, data[0])
+            self.assertEqual("a", data[1].decode())
 
 
 if __name__ == '__main__':
