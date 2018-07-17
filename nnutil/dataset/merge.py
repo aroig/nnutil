@@ -34,5 +34,5 @@ class Merge(tf.data.Dataset):
         return res
 
 
-def merge(datasets):
-    return Merge(datasets)
+def merge(datasets, **kwargs):
+    return Merge(datasets, **kwargs)

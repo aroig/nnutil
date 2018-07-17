@@ -39,5 +39,5 @@ class TextFiles(tf.data.Dataset):
 
         return feature
 
-def text_files(directory, glob='*', shuffle=True):
-    return TextFiles(directory, glob=glob, shuffle=shuffle)
+def text_files(directory, **kwargs):
+    return TextFiles(directory, **kwargs)

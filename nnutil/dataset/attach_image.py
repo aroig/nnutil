@@ -105,13 +105,5 @@ class AttachImage(tf.data.Dataset):
         return feature
 
 
-def attach_image(dataset, shape, image_key=None, shape_key=None, image_path=None, image_src=None, crop_window=None, standardize=False):
-    return AttachImage(
-        dataset,
-        shape,
-        image_key=image_key,
-        shape_key=shape_key,
-        image_path=image_path,
-        image_src=image_src,
-        crop_window=crop_window,
-        standardize=standardize)
+def attach_image(dataset, shape, **kwargs):
+    return AttachImage(dataset, shape, **kwargs)

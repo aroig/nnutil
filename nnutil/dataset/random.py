@@ -36,5 +36,5 @@ class Random(tf.data.Dataset):
 
         return feature
 
-def random(shape, seed=None):
-    return Random(shape=shape, seed=seed)
+def random(shape, **kwargs):
+    return Random(shape, **kwargs)

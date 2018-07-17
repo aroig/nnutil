@@ -111,10 +111,5 @@ class CropImage(tf.data.Dataset):
         return feature
 
 
-def crop_image(dataset, shape, image_key=None, crop_key=None, angle_key=None):
-    return CropImage(
-        dataset,
-        shape,
-        image_key=image_key,
-        crop_key=crop_key,
-        angle_key=angle_key)
+def crop_image(dataset, shape, **kwargs):
+    return CropImage(dataset, shape, **kwargs)

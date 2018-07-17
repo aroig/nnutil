@@ -66,7 +66,6 @@ class PartitionDataset(tf.data.Dataset):
         return self._dataset.output_types
 
 
-def partition(dataset, dist, split_field, salt=None):
-    return tuple([PartitionDataset(dataset, dist, split_field, i, salt=salt)
+def partition(dataset, dist, split_field, **kwargs):
+    return tuple([PartitionDataset(dataset, dist, split_field, i, **kwargs)
                   for i in range(0, len(dist))])
-

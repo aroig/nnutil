@@ -49,8 +49,5 @@ class AttachRaw(tf.data.Dataset):
         feature[self._content_key] = data
         return feature
 
-def attach_raw(dataset, content_key=None, file_path=None):
-    return AttachRaw(
-        dataset,
-        content_key=content_key,
-        file_path=file_path)
+def attach_raw(dataset, **kwargs):
+    return AttachRaw(dataset, **kwargs)

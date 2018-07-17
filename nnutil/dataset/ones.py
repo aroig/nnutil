@@ -36,5 +36,5 @@ class Ones(tf.data.Dataset):
 
         return feature
 
-def ones(shape):
-    return Ones(shape=shape)
+def ones(shape, **kwargs):
+    return Ones(shape=shape, **kwargs)

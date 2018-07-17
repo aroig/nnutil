@@ -58,6 +58,5 @@ class JSONFiles(tf.data.Dataset):
         feature[self._path_key] = path
         return feature
 
-def json_files(directory, input_spec,
-               flatten_lists=False, path_key=None, glob='*.json', shuffle=True):
-    return JSONFiles(directory, input_spec, flatten_lists=flatten_lists, path_key=path_key, glob=glob, shuffle=shuffle)
+def json_files(directory, input_spec, **kwargs):
+    return JSONFiles(directory, input_spec, **kwargs)

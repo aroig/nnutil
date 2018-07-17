@@ -136,18 +136,5 @@ class MutateImage(tf.data.Dataset):
         return feature
 
 
-def mutate_image(dataset, image_key=None,
-                 hue=None, brightness=None, contrast=None, saturation=None,
-                 hflip=False, rotate=None,
-                 gaussian_noise=None, impulse_noise=None, seed=None):
-    return MutateImage(dataset,
-                       image_key=image_key,
-                       hue=hue,
-                       brightness=brightness,
-                       contrast=contrast,
-                       saturation=saturation,
-                       hflip=hflip,
-                       rotate=rotate,
-                       gaussian_noise=gaussian_noise,
-                       impulse_noise=impulse_noise,
-                       seed=seed)
+def mutate_image(dataset, **kwargs):
+    return MutateImage(dataset, **kwargs)

@@ -117,5 +117,5 @@ class ParseJSON(tf.data.Dataset):
             return tf.data.Dataset.from_tensors(feature)
 
 
-def parse_json(dataset, input_spec, flatten_lists=False):
-    return ParseJSON(dataset, input_spec, flatten_lists=flatten_lists)
+def parse_json(dataset, input_spec, **kwargs):
+    return ParseJSON(dataset, input_spec, **kwargs)

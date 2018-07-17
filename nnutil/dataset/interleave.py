@@ -48,5 +48,5 @@ class Interleave(tf.data.Dataset):
         return self._dataset._as_variant_tensor()
 
 
-def interleave(datasets):
-    return Interleave(datasets)
+def interleave(datasets, **kwargs):
+    return Interleave(datasets, **kwargs)

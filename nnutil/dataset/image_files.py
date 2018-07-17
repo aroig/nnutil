@@ -41,5 +41,5 @@ class ImageFiles(tf.data.Dataset):
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
 
-def image_files(directory, shape, glob='*', shuffle=True, **kwargs):
-    return ImageFiles(directory, shape, glob=glob, image_key=image_key, shuffle=shuffle)
+def image_files(directory, shape, **kwargs):
+    return ImageFiles(directory, shape, **kwargs)

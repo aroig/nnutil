@@ -54,5 +54,5 @@ class TFRecord(tf.data.Dataset):
         return parsed_features
 
 
-def tfrecord(path, input_spec):
-    return TFRecord(path=path, input_spec=input_spec)
+def tfrecord(path, input_spec, **kwargs):
+    return TFRecord(path, input_spec, **kwargs)

@@ -119,12 +119,5 @@ class MutateWindow(tf.data.Dataset):
         return feature
 
 
-def mutate_window(dataset, window_key=None, angle_key=None, scale=None, keep_aspect=False, xoffset=None, yoffset=None, rotate=None, seed=None):
-    return MutateWindow(dataset,
-                        window_key=window_key,
-                        scale=scale,
-                        keep_aspect=keep_aspect,
-                        xoffset=xoffset,
-                        yoffset=yoffset,
-                        rotate=rotate,
-                        seed=seed)
+def mutate_window(dataset, **kwargs):
+    return MutateWindow(dataset, **kwargs)
