@@ -25,4 +25,5 @@ from .dataset_mutate_window import *
 from .layers_reshape import *
 from .layers_segment import *
 from .layers_residual import *
+from .layers_cylinder import *
 from .util_slice_axis import *

@@ -14,13 +14,14 @@ def slice_axis(x, rg, axis=0):
 
     assert(rg[0] < size and -size <= rg[0])
     assert(rg[1] < size and -size <= rg[1])
-    assert(rg[0] < rg[1])
 
     if rg[0] < 0:
         rg[0] = size + rg[0]
 
     if rg[1] <= 0:
         rg[1] = size + rg[1]
+
+    assert(rg[0] < rg[1])
 
     begin = [0] * rank
     begin[axis] = rg[0]
