@@ -200,17 +200,29 @@ class Experiment:
 
         savemodel_path = self.serving_export(export_path=export_path, as_text=as_text)
 
+        # Obtain list of output ops
+        with tf.Session(graph=tf.Graph()) as sess:
+            features = self._model.features_placeholder()
+
+            estimator_spec = self._model.model_fn(
+                features,
+                {},
+                tf.estimator.ModeKeys.PREDICT,
+                {},
+                {}
+            )
+
+            output_ops = [x.op.name for k, x in estimator_spec.predictions.items()]
+
         # Freeze exported graph
         with tf.Session(graph=tf.Graph()) as sess:
             tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], savemodel_path)
-
-            # TODO: need to get list of output ops from the model
 
             # Transform variables to constants and strip unused ops
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
                 sess,
                 tf.get_default_graph().as_graph_def(add_shapes=True),
-                ["probabilities"]
+                output_ops
             )
 
             if as_text:
