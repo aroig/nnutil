@@ -5,6 +5,8 @@ from datetime import datetime
 import tensorflow as tf
 import numpy as np
 
+from tensorflow.python import debug as tfdbg
+
 from .. import visual
 from .. import model
 
@@ -12,7 +14,7 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 
 class Experiment:
     def __init__(self, path, model, eval_dataset_fn=None, train_dataset_fn=None,
-                 hyperparameters=None, resume=False, seed=None,
+                 hyperparameters=None, resume=False, debug=False, seed=None,
                  eval_secs=None, log_secs=None, profile_secs=None, name=None):
 
         default_hyperparameters = {
@@ -43,6 +45,7 @@ class Experiment:
         self._seed = seed
 
         self._resume = resume
+        self._debug = debug
 
         if eval_secs is None:
             eval_secs = 120
@@ -90,6 +93,11 @@ class Experiment:
 
     def hooks(self, mode):
         hooks = []
+
+        if self._debug:
+            hooks.append(
+                tfdbg.TensorBoardDebugHook("localhost:6007")
+            )
 
         if self._profile_secs is not None:
             hooks.append(
