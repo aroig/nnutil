@@ -22,7 +22,7 @@ class Experiment:
             'learning_rate': 0.001,
             'learning_rate_decay': 1.0,
             'momentum': 0.9,
-            'train_steps': 16000,
+            'train_steps': 1000,
             'eval_steps': 10,
             'regularizer': 0.0,
             'regularizer_step': 1000,
