@@ -13,7 +13,7 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 class Experiment:
     def __init__(self, path, model, eval_dataset_fn=None, train_dataset_fn=None,
                  hyperparameters=None, resume=False, seed=None,
-                 eval_secs=None, profile_secs=None, name=None):
+                 eval_secs=None, log_secs=None, profile_secs=None, name=None):
 
         default_hyperparameters = {
             'batch_size': 64,
@@ -47,9 +47,12 @@ class Experiment:
         if eval_secs is None:
             eval_secs = 120
 
+        if log_secs is None:
+            log_secs = 120
+
         self._profile_secs = profile_secs
-        self._log_secs = 120
-        self._checkpoint_secs = 120
+        self._log_secs = log_secs
+        self._checkpoint_secs = log_secs
         self._eval_secs = eval_secs
         self._summary_steps = 30
 
