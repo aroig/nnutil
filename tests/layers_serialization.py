@@ -210,16 +210,6 @@ class LayerSerialization(unittest.TestCase):
         self.assertFilesEqual(os.path.join(self._model_path, "{}.pbtxt".format(model.name)),
                               os.path.join(self._export_path, "{}.pbtxt".format(model.name)))
 
-    def assert_nl_export(self, experiment):
-        model = experiment.model
-        experiment.neurallabs_export(self._export_path)
-
-        self.assertFilesEqual(os.path.join(self._model_path, "{}.net".format(model.name)),
-                              os.path.join(self._export_path, "{}.net".format(model.name)))
-
-        self.assertFilesEqual(os.path.join(self._model_path, "{}.wgt".format(model.name)),
-                              os.path.join(self._export_path, "{}.wgt".format(model.name)))
-
     def test_serialization_output(self):
         model = TestOutputModel()
 
@@ -249,7 +239,6 @@ class LayerSerialization(unittest.TestCase):
         # TODO: generate checkpoint without training step
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_input_layernorm(self):
         model = TestInputAModel()
@@ -268,7 +257,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_input_rangenorm(self):
         model = TestInputBModel()
@@ -287,7 +275,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_dense(self):
         model = TestDenseModel()
@@ -304,7 +291,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_avg_pooling(self):
         model = TestAvgPoolingModel()
@@ -321,7 +307,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_max_pooling(self):
         model = TestMaxPoolingModel()
@@ -338,7 +323,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_conv2d_5(self):
         model = TestConv2DModel(5)
@@ -355,7 +339,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_conv2d_1(self):
         model = TestConv2DModel(1)
@@ -372,7 +355,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_conv2d_2(self):
         model = TestConv2DModel(2)
@@ -389,7 +371,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_conv2d_3(self):
         model = TestConv2DModel(3)
@@ -406,7 +387,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
     def test_serialization_separable_conv2d(self):
         model = TestSeparableConv2DModel(3)
@@ -423,7 +403,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
 
     def test_serialization_dropout(self):
@@ -441,7 +420,6 @@ class LayerSerialization(unittest.TestCase):
 
         experiment.train(steps=1)
         self.assert_tf_export(experiment)
-        self.assert_nl_export(experiment)
 
 
 if __name__ == '__main__':
