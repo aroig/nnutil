@@ -174,14 +174,21 @@ class Experiment:
                 throttle_secs=self._eval_secs,
                 steps=eval_steps))
 
+    def export(self, **kwargs):
+        return self.plain_export(**kwargs)
+
     def serving_export(self, export_path=None, as_text=False):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
 
         model = self._model
         def input_receiver_fn():
+            # TODO: we should receive a serialized input and parse it
+            # serialized_example = tf.placeholder(dtype=tf.string, shape=[None], name='serialized_input')
+            # receiver = {'inputs':  serialized_example}
+            # features = {'blah': tf.parse_example(serialized_example, feature_spec)}
+            receiver = {}
             features = model.features_placeholder()
-            receiver = model.features_placeholder()
             return tf.estimator.export.ServingInputReceiver(features, receiver)
 
         if not os.path.isdir(export_path):
@@ -189,12 +196,17 @@ class Experiment:
 
         # TODO: need a 'predict' tag?
         estimator = self.estimator('train')
-        savemodel_path = estimator.export_savedmodel(export_path, input_receiver_fn, as_text=True)
+
+        savemodel_path = estimator.export_savedmodel(
+            export_path,
+            input_receiver_fn,
+            as_text=True)
+
         savemodel_path = savemodel_path.decode()
 
         return savemodel_path
 
-    def export(self, export_path=None, batch_size=1, as_text=False):
+    def frozen_serving_export(self, export_path=None, batch_size=1, as_text=False):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
 
@@ -218,10 +230,13 @@ class Experiment:
         with tf.Session(graph=tf.Graph()) as sess:
             tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], savemodel_path)
 
+            # NOTE: add_shapes adds `_output_shapes` members
+            graph_def = tf.get_default_graph().as_graph_def(add_shapes=True)
+
             # Transform variables to constants and strip unused ops
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
                 sess,
-                tf.get_default_graph().as_graph_def(add_shapes=True),
+                graph_def,
                 output_ops
             )
 
@@ -230,39 +245,55 @@ class Experiment:
             else:
                 model_pb = '{}.pb'.format(self._name)
 
-            tf.train.write_graph(frozen_graph_def, export_path, model_pb, as_text=as_text)
+            tf.train.write_graph(
+                frozen_graph_def,
+                export_path,
+                model_pb,
+                as_text=as_text)
 
-    def plain_export(self, export_path=None, batch_size=1):
+    def plain_export(self, export_path=None, batch_size=1, as_text=False):
         if export_path is None:
             export_path = os.path.join(self.path, "export")
+
+        checkpoint_path = tf.train.latest_checkpoint(self.path)
 
         with tf.Session(graph=tf.Graph()) as sess:
             features = self._model.features_placeholder()
 
-            estimator_spec = self._model.model_fn(features,
-                                               {},
-                                               tf.estimator.ModeKeys.PREDICT)
+            estimator_spec = self._model.model_fn(
+                features,
+                {},
+                tf.estimator.ModeKeys.PREDICT,
+                {},
+                {})
 
-            # TODO: need to get list of predictions from the model
+            output_ops = [x.op.name for k, x in estimator_spec.predictions.items()]
 
-            probs = estimator_spec.predictions['probs']
+            saver = tf.train.Saver()
 
-            sess.run(tf.global_variables_initializer())
+            # Restore variables from checkpoint
+            # sess.run(tf.global_variables_initializer())
+            saver.restore(sess, checkpoint_path)
 
-            # TODO: need to load variables from the last checkpoint
+            # NOTE: add_shapes adds `_output_shapes` members
+            graph_def = tf.get_default_graph().as_graph_def(add_shapes=True)
 
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
                 sess,
-                tf.get_default_graph().as_graph_def(),
-                [ probs.op.name ]
+                graph_def,
+                output_ops
             )
 
-            tf.train.write_graph(sess.graph,
-                                 export_path,
-                                 '{}.pbtxt'.format(self._name),
-                                 as_text=True)
+            # Export unfrozen graph
+            tf.train.write_graph(
+                graph_def,
+                export_path,
+                '{}.pbtxt'.format(self._name),
+                as_text=True)
 
-            tf.train.write_graph(frozen_graph_def,
-                                 export_path,
-                                 '{}.pb'.format(self._name),
-                                 as_text=False)
+            # Export frozen graph
+            tf.train.write_graph(
+                frozen_graph_def,
+                export_path,
+                '{}.pb'.format(self._name),
+                as_text=as_text)
