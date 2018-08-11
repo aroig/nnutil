@@ -11,3 +11,4 @@
 
 from .conversion import *
 from .mosaic import *
+from .rasterize import *

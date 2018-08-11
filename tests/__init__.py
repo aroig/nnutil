@@ -27,3 +27,4 @@ from .layers_segment import *
 from .layers_residual import *
 from .layers_cylinder import *
 from .util_slice_axis import *
+from .image_rasterize import *
