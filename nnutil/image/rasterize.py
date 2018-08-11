@@ -10,6 +10,18 @@
 
 import tensorflow as tf
 
+def raster_indices(coord, shape):
+    with tf.name_scope("raster_indices"):
+        if type(shape) in set([list, tuple]):
+            shape = tf.constant(shape, dtype=coord.dtype)
+        else:
+            shape = tf.cast(shape, dtype=coord.dtype)
+
+        indexes = coord * (shape - 1)
+        indexes = tf.cast(tf.round(indexes), dtype=tf.int32)
+
+    return indexes
+
 def rasterize(coord, values, shape):
     assert(len(coord.shape) == 2)
     assert(len(shape) == coord.shape[-1])
@@ -26,8 +38,7 @@ def rasterize(coord, values, shape):
             value_shape
         ], axis=-1)
 
-        indexes = coord * (tf.constant(shape, dtype=coord.dtype) - 1)
-        indexes = tf.cast(tf.round(indexes), dtype=tf.int32)
+        indexes = raster_indices(coord, shape)
 
         # NOTE: this accumulates values if several points map to the same pixel.
         # TODO: make it take value from a single point
@@ -37,3 +48,12 @@ def rasterize(coord, values, shape):
             raster_shape)
 
     return raster
+
+def pick(coord, raster):
+    dimension = coord.shape[-1]
+
+    with tf.name_scope("pick"):
+        indexes = raster_indices(coord, tf.shape(raster)[0:tf.shape(coord)[-1]])
+        values = tf.gather_nd(raster, indexes)
+
+    return values
