@@ -7,7 +7,6 @@ import numpy as np
 
 from tensorflow.python import debug as tfdbg
 
-from .. import visual
 from .. import model
 
 from .tensorboard_profiler_hook import TensorboardProfilerHook
@@ -15,7 +14,8 @@ from .tensorboard_profiler_hook import TensorboardProfilerHook
 class Experiment:
     def __init__(self, path, model, eval_dataset_fn=None, train_dataset_fn=None,
                  hyperparameters=None, resume=False, debug=False, seed=None,
-                 eval_secs=None, log_secs=None, profile_secs=None, name=None):
+                 eval_secs=None, log_secs=None, profile_secs=None,
+                 train_distribute=None, name=None):
 
         default_hyperparameters = {
             'batch_size': 64,
@@ -41,6 +41,8 @@ class Experiment:
 
         self._train_dataset_fn = train_dataset_fn
         self._eval_dataset_fn = eval_dataset_fn
+
+        self._train_distribute = train_distribute
 
         self._seed = seed
 
@@ -117,7 +119,8 @@ class Experiment:
             save_summary_steps=self._summary_steps,
             save_checkpoints_secs=self._checkpoint_secs,
             keep_checkpoint_max=10,
-            log_step_count_steps=self._summary_steps)
+            log_step_count_steps=self._summary_steps,
+            train_distribute=self._train_distribute)
 
         estimator = tf.estimator.Estimator(
             model_fn=model_fn,
