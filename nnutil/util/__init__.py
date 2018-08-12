@@ -5,3 +5,5 @@ from .benchmark_dataset import *
 from .flatten import *
 from .slice_axis import *
 from .tensorboard import *
+from .print_sample import *
+
