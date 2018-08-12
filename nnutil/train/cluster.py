@@ -4,7 +4,7 @@ import json
 
 import tensorflow as tf
 
-from .. import visual
+from .. import util
 
 class Cluster:
     def __init__(self, cluster_spec, tensorboard_path=None):
@@ -55,7 +55,7 @@ class Cluster:
         self.set_environment()
 
         if self.is_chief() and self._tensorboard_path is not None:
-            self._tensorboard = visual.Tensorboard(self._tensorboard_path)
+            self._tensorboard = util.Tensorboard(self._tensorboard_path)
             self._tensorboard.__enter__()
 
         return self

@@ -4,3 +4,4 @@ from .colorize import *
 from .benchmark_dataset import *
 from .flatten import *
 from .slice_axis import *
+from .tensorboard import *
