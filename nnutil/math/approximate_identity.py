@@ -24,7 +24,30 @@ def closest_fraction(x, N):
 
     return (best_num, best_den)
 
+def _approximate_identity_1d(x, input_shape, output_shape):
+    # x: (batch, x, channel)
+    assert(len(input_shape) == 2)
+    assert(len(output_shape) == 2)
+
+    if (input_shape[0] != output_shape[0]):
+        x = tf.reshape(x, shape=(-1, 1, input_shape[0], input_shape[1]))
+        x = tf.image.resize_bilinear(x, (1, output_shape[0]))
+        x = tf.reshape(x, shape=(-1, output_shape[0], input_shape[1]))
+
+    if input_shape[-1] < output_shape[-1]:
+        n = output_shape[-1] - input_shape[-1]
+        padding = tf.constant([[0, 0], [0, 0], [0, n]], dtype=tf.int32)
+        x = tf.pad(x, padding)
+
+    elif input_shape[-1] > output_shape[-1]:
+        x = tf.expand_dims(x, axis=-1)
+        x = approximate_identity(x, (-1,) + output_shape + (1,))
+        x = tf.squeeze(x, axis=-1)
+
+    return x
+
 def _approximate_identity_2d(x, input_shape, output_shape):
+    # x: (batch, x, y, channel)
     assert(len(input_shape) == 3)
     assert(len(output_shape) == 3)
 
@@ -32,15 +55,52 @@ def _approximate_identity_2d(x, input_shape, output_shape):
         x = tf.image.resize_bilinear(x, (output_shape[0], output_shape[1]))
 
     if input_shape[-1] < output_shape[-1]:
-        padding = tf.constant([[0, 0], [0, 0], [0, 0], [0, output_shape[-1] - input_shape[-1]]])
+        n = int(output_shape[-1] - input_shape[-1])
+        padding = tf.constant([[0, 0], [0, 0], [0, 0], [0, n]], dtype=tf.int32)
         x = tf.pad(x, padding)
 
     elif input_shape[-1] > output_shape[-1]:
-        raise NotImplementedError
+        x = tf.expand_dims(x, axis=-1)
+        x = approximate_identity(x, (-1,) + output_shape + (1,))
+        x = tf.squeeze(x, axis=-1)
 
     return x
 
 def _approximate_identity_nd(x, input_shape, output_shape):
+    # x: (batch, spatial..., channel)
+    assert(len(input_shape) > 3)
+    assert(len(output_shape) > 3)
+
+    assert(len(input_shape) == len(output_shape))
+    rank = len(input_shape)
+
+    if input_shape[-1] < output_shape[-1]:
+        x = _approximate_identity_nd(x, input_shape, output_shape[:-1] + (input_shape[-1],))
+        n = int(output_shape[-1] - input_shape[-1])
+        padding = tf.constant(rank * [[0, 0]] + [[0, n]], dtype=tf.int32)
+        x = tf.pad(x, padding)
+
+    elif input_shape[-1] == output_shape[-1]:
+        if (input_shape[-2] == output_shape[-2]):
+            rest = np.prod(input_shape[-2:])
+            x = tf.reshape(x, shape=(-1,) + input_shape[:-2] + (rest,))
+            x = approximate_identity(x, (-1,) + output_shape[:-2] + (rest,))
+            x = tf.reshape(x, shape=(-1,) + output_shape)
+
+        else:
+            x = tf.reshape(x, shape=(-1,) + input_shape[-3:])
+            x = approximate_identity(x, (-1,) + output_shape[-3:])
+            x = tf.reshape(x, shape=(-1,) + input_shape[:-3] + output_shape[-3:])
+            x = _approximate_identity_nd(x, input_shape[:-3] + output_shape[-3:], output_shape)
+
+    else:
+        x = tf.expand_dims(x, axis=-1)
+        x = approximate_identity(x, (-1,) + output_shape + (1,))
+        x = tf.squeeze(x, axis=-1)
+
+    return x
+
+def _approximate_identity_nd_old(x, input_shape, output_shape):
     expansion_shape = []
     compression_shape = []
 
@@ -86,10 +146,18 @@ def approximate_identity(x, shape):
     if input_shape == output_shape:
         y = x
 
+    elif (len(input_shape) == 2):
+        y = _approximate_identity_1d(x, input_shape, output_shape)
+
     elif (len(input_shape) == 3):
         y = _approximate_identity_2d(x, input_shape, output_shape)
 
-    else:
+    elif (len(input_shape) > 3):
         y = _approximate_identity_nd(x, input_shape, output_shape)
+
+    else:
+        raise NotImplementedError
+
+    assert(y.shape[1:] == output_shape)
 
     return y
