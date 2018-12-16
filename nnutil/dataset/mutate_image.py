@@ -9,6 +9,8 @@ class MutateImage(tf.data.Dataset):
                  hflip=False, rotate=None,
                  gaussian_noise=None, impulse_noise=None, seed=None):
 
+        self._input_datasets = [dataset]
+
         if image_key is None:
             image_key = 'image'
         self._image_key = image_key
@@ -66,6 +68,9 @@ class MutateImage(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

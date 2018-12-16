@@ -4,6 +4,7 @@ import numpy as np
 class MutateWindow(tf.data.Dataset):
     def __init__(self, dataset, window_key=None, angle_key=None,
                  scale=None, keep_aspect=False, xoffset=None, yoffset=None, seed=None, rotate=None):
+        self._input_datasets = [dataset]
 
         if window_key is None:
             window_key = 'window'
@@ -61,6 +62,9 @@ class MutateWindow(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

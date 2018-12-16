@@ -11,6 +11,8 @@ class AttachImage(tf.data.Dataset):
         self._shape = shape
         self._parallel = int (0.5 * multiprocessing.cpu_count())
 
+        self._input_datasets = [dataset]
+
         if image_key is None:
             image_key = 'image'
 
@@ -68,6 +70,9 @@ class AttachImage(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

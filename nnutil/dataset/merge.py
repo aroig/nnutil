@@ -5,6 +5,7 @@ import numpy as np
 
 class Merge(tf.data.Dataset):
     def __init__(self, datasets):
+        self._input_datasets = [ds for ds in datasets]
 
         dataset = tf.data.Dataset.zip(tuple(datasets))
         dataset = dataset.map(self.merge_dicts)
@@ -22,6 +23,9 @@ class Merge(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

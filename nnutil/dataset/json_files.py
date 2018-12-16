@@ -38,6 +38,9 @@ class JSONFiles(tf.data.Dataset):
     def output_types(self):
         return self._dataset.output_types
 
+    def _inputs(self):
+        return []
+
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
 

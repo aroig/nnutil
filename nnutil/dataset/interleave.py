@@ -10,10 +10,10 @@ class Interleave(tf.data.Dataset):
         """Interleaves the given input datasets.
         """
 
-        self._input_datasets = tuple([ds.repeat() for ds in datasets])
+        self._input_datasets = [ds for ds in datasets]
         self._size = len(self._input_datasets)
 
-        dataset = tf.data.Dataset.zip(self._input_datasets)
+        dataset = tf.data.Dataset.zip(tuple([ds.repeat() for ds in self._input_datasets]))
         dataset = dataset.flat_map(self.serialize_zip)
         self._dataset = dataset
 
@@ -43,6 +43,9 @@ class Interleave(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

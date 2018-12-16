@@ -10,6 +10,8 @@ from tensorflow.python.data.util import nest
 
 class ParseJSON(tf.data.Dataset):
     def __init__(self, dataset, input_spec, flatten_lists=False):
+        self._input_datasets = [dataset]
+
         self._flat_shapes = [spec.shape for spec in nest.flatten(input_spec)]
         self._input_shapes = nest.pack_sequence_as(input_spec, self._flat_shapes)
 
@@ -33,6 +35,9 @@ class ParseJSON(tf.data.Dataset):
     @property
     def output_types(self):
         return self._dataset.output_types
+
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()

@@ -10,6 +10,8 @@ class PartitionDataset(tf.data.Dataset):
     def __init__(self, dataset, dist, split_field, index, salt=None):
         self._nbuckets = len(dist)
 
+        self._input_datasets = [dataset]
+
         ss = sum(dist)
         self._thresh_A = sum([p for i, p in enumerate(dist) if i < index ]) / ss
         self._thresh_B = sum([p for i, p in enumerate(dist) if i <= index ]) / ss
@@ -46,6 +48,8 @@ class PartitionDataset(tf.data.Dataset):
 
         return tf.logical_and(C0, C1)
 
+    def _inputs(self):
+        return list(self._input_datasets)
 
     def _as_variant_tensor(self):
         return self._dataset._as_variant_tensor()
