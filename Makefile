@@ -76,7 +76,7 @@ run: $(VENVDIR)/bin/$(NAME)
 	$(VPYTHON) $(VENVDIR)/bin/$(NAME) $(ARGS)
 
 test: $(VENVDIR)/bin/activate
-	@$(VPYTHON) -m unittest -v tests
+	@TF_CPP_MIN_LOG_LEVEL="3" $(VPYTHON) -m unittest -v tests
 
 coverage: $(VENVDIR)/bin/activate
 	@$(VCOVERAGE) run -m unittest tests
