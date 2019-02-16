@@ -60,6 +60,7 @@ lint:
 $(VENVDIR)/bin/activate: Makefile requirements.txt
 	@$(VIRTUALENV) $(VENVDIR)
 	$(VPIP) install -r requirements.txt
+	if [ -e $@ ]; then touch $@; fi
 
 $(VENVDIR)/bin/$(NAME): $(VENVDIR)/bin/activate setup.py $(SOURCE_FILES)
 	@$(VPIP) install --editable .
