@@ -45,7 +45,7 @@ class JSONFiles(tf.data.Dataset):
         return self._dataset._as_variant_tensor()
 
     def path_exists(self, path):
-        return tf.py_func(lambda x: os.path.exists(x.decode()), [path], [tf.bool], stateful=False)
+        return tf.py_func(lambda x: os.path.exists(x.decode()), [path], tf.bool, stateful=False)
 
     def load_content(self, path):
         content = tf.data.Dataset.from_tensors(tf.read_file(path))
