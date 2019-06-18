@@ -1,6 +1,6 @@
 {
     "_copy_without_render": [],
-    "_template": "local:devel-tensorflow",
+    "_template": "local:devel-python",
     "date": "2018-03-16",
     "email": "abdo.roig@gmail.com",
     "full_name": "Abd\u00f3 Roig-Maranges",
